@@ -273,8 +273,10 @@ The original executable and private assets reached the Farmland 3D scene
 through the production framebuffer-copy helper and GLES 3 native context.
 A captured frame shows the school building, terrain, road, fences, trees,
 money/statistics HUD and principal panel. The top-right file control accepted
-input and opened its save/exit buttons. Saving, placement and reload still
-require verification.
+input and opened its save/exit buttons. The Save Game screen accepted the Save action and created
+`Data/SAVED_GAMES/NewSave.sts` (about 198 KiB, with a Farmland scenario
+header) in the private guest copy. Placement and reload
+still require verification.
 
 The full level exposed GLSL link failures (`setup_vs_output` unresolved),
 matrix-uniform errors and draw errors that the earlier texture probe did not
@@ -287,3 +289,10 @@ explicit `-O2 -DNDEBUG`; it reports its version in the ARM64 guest. The optimize
 `ST-OPT-CPU-PASS` with exit 0. Full-game validation remains pending. The existing
 full-game run was left intact; the optimized binary is private and is not
 included in a device update yet.
+
+The first GLES school-scene run later exhausted guest memory and was killed
+by the Linux OOM killer (status 137, game anonymous RSS about 897 MiB, with
+swap in use). This is a failed sustained-run test even though the scene and
+save succeeded. The emulator uses software Mesa, so its allocation pattern
+is not a measurement of Mali memory use. Shader errors remain a separate
+reproducible compatibility fault under investigation.
