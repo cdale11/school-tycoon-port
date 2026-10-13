@@ -262,5 +262,7 @@ The launcher now requires built-in virtio random support and supplies a
 `virtio-rng-device` backed by the host's `/dev/urandom`.
 The Linux 4.9.170 virtio RNG driver sets its quality to 1000, allowing
 the kernel to credit this trusted host entropy without a global override.
-No deterministic seeds or game assets are included. Cold-boot validation of
-this permanent device setup remains pending.
+No deterministic seeds or game assets are included. A separate cold boot
+using the rebuilt kernel, existing initramfs and this RNG device initialized
+the CRNG at guest uptime 1.06 seconds. This isolated check attached no game
+data disk, leaving the ongoing full-game test undisturbed.
