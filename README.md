@@ -9,10 +9,13 @@ workaround has passed cloud EGL checks but has not been verified on Mali.
 ## Update an existing installation
 
 Exit School Tycoon first. Extract
-[school-tycoon-graphics-update.tar.gz](releases/school-tycoon-graphics-update.tar.gz)
+[school-tycoon-runtime-update.tar.gz](releases/school-tycoon-runtime-update.tar.gz)
 into `/userdata/roms/ports/`, replacing the included launcher files, then launch
 School Tycoon again. The update includes no game assets, settings, saves or Wine
-prefix. It adds a native bridge helper and updates `school-tycoon/run-game.sh`.
+prefix. It adds the native graphics helper and updates the launcher/installer. Missing-target
+links left by a removed probe folder are handled safely; a missing prefix link
+is preserved for recovery. Verified Wine downloads are cached, so an extraction
+failure does not require another network download.
 
 ## Install and launch
 

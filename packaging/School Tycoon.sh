@@ -10,6 +10,10 @@ if [ "$(uname -m)" != aarch64 ]; then
 fi
 # Reuse large, previously installed runtimes without moving or altering them.
 for runtime_name in wine-10.0-amd64-wow64 weston-0.2; do
+    if [ -L "$game_root/runtime/$runtime_name" ] && [ ! -e "$game_root/runtime/$runtime_name" ]; then
+        printf 'Removing missing-target runtime link: %s\n' "$runtime_name"
+        rm -- "$game_root/runtime/$runtime_name"
+    fi
     if [ ! -e "$game_root/runtime/$runtime_name" ] && [ -d "$ports_dir/school-tycoon-runtime-probe/runtime/$runtime_name" ]; then
         ln -s "$ports_dir/school-tycoon-runtime-probe/runtime/$runtime_name" "$game_root/runtime/$runtime_name"
     fi
@@ -17,6 +21,16 @@ done
 if [ ! -f "$game_root/gamedata/SchoolTycoon.exe" ]; then
     printf '%s\n' 'Copy the contents of your ST folder into ports/school-tycoon/gamedata/.'
     exit 1
+fi
+# Preserve a dangling prefix link for recovery; create a new prefix if its
+# old probe target was removed. Never delete a real prefix or saved data.
+if [ -L "$game_root/prefix-wine-10.0" ] && [ ! -e "$game_root/prefix-wine-10.0" ]; then
+    prefix_backup="$game_root/prefix-wine-10.0.missing-target.$(date +%s)"
+    if [ -e "$prefix_backup" ] || [ -L "$prefix_backup" ]; then
+        printf '%s\n' 'Prefix backup path exists; leaving the missing-target link untouched.'; exit 1
+    fi
+    mv "$game_root/prefix-wine-10.0" "$prefix_backup"
+    printf 'Preserved missing-target Wine prefix link: %s\n' "$prefix_backup"
 fi
 # Reuse an existing prefix to avoid another first-run installation on this device.
 if [ ! -e "$game_root/prefix-wine-10.0" ] && [ -d "$ports_dir/school-tycoon-runtime-probe/prefix-wine-10.0" ]; then

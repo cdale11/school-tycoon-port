@@ -1,0 +1,17 @@
+School Tycoon runtime update
+
+Exit the game before installing. Extract into /userdata/roms/ports/ and replace
+only the included files. Launch School Tycoon normally afterwards.
+
+This update fixes the repeated Wine download caused by a broken runtime link to
+the old probe directory. Verified Wine downloads are retained under
+school-tycoon/runtime/downloads, including when extraction fails. Installed
+Wine is reused after its required files have been checked.
+
+Real files at the runtime directory path are preserved and rejected with a clear
+error. Dangling runtime links are removed without deleting any target data.
+Dangling Wine-prefix links are backed up as prefix-wine-10.0.missing-target.TIME.
+Actual game assets, settings, saves and valid prefixes are not modified.
+
+The latest EGL graphics helper is also included. It remains unverified on Mali.
+The supplied repeated-download log failed before launching Wine or the game.

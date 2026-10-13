@@ -478,3 +478,28 @@ as well as cwd/status/cleanup. Native ARM64 compilation passed with warnings
 as errors; the helper requires glibc at most 2.34. These are not handheld or
 Direct3D/gameplay passes. Device verification remains required, with the helper's
 status captured automatically in game-wine.txt.
+
+## Repeated-download installation failure
+
+The latest launcher log shows the Wine download and SHA256 verification both
+succeeded, followed by "mv: cannot overwrite non-directory .../runtime/
+wine-10.0-amd64-wow64 with directory .../.wine-stage...". The old installer
+checked only -e, so a dangling symbolic link was treated as an absent path,
+but remained in place and blocked the final directory move. Cleanup then removed
+the downloaded archive, repeating the same download/install failure at each launch.
+This run never reached Wine/game execution; it does not test the graphics update.
+
+The installer and Ports entry now remove only dangling runtime links, preserve
+real non-directory files and reject them before download, and validate existing
+Wine installations before reusing them. The installer stores checksum-verified
+archives in runtime/downloads and retains them on extraction failure. Stale
+prefix links are moved to a dated backup link rather than deleted; no actual
+prefix or save directory is removed. Restoring a missing target may recover its
+old prefix, but no saves can be recovered from a deleted target by this update.
+
+The recovery integration check passed with the actual pinned Wine 10.0 archive
+and a curl stub that rejects every network call: normal-file preservation,
+broken runtime link removal, failed extraction retaining the verified cache,
+successful real extraction/install, second-launch reuse without downloading,
+and Ports-entry recovery preserving a dangling prefix link. These validate
+installer behavior; they are not gameplay or handheld graphics passes.
