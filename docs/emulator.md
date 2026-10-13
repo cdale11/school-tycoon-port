@@ -266,3 +266,24 @@ No deterministic seeds or game assets are included. A separate cold boot
 using the rebuilt kernel, existing initramfs and this RNG device initialized
 the CRNG at guest uptime 1.06 seconds. This isolated check attached no game
 data disk, leaving the ongoing full-game test undisturbed.
+
+## Original Farmland through GLES (2026-10-13)
+
+The original executable and private assets reached the Farmland 3D scene
+through the production framebuffer-copy helper and GLES 3 native context.
+A captured frame shows the school building, terrain, road, fences, trees,
+money/statistics HUD and principal panel. The top-right file control accepted
+input and opened its save/exit buttons. Saving, placement and reload still
+require verification.
+
+The full level exposed GLSL link failures (`setup_vs_output` unresolved),
+matrix-uniform errors and draw errors that the earlier texture probe did not
+exercise. A visible scene does not certify all models or effects. No complete
+gameplay or handheld pass is claimed.
+
+The cloud Box64 build also had empty release compiler flags, despite its
+Release label. A separate unmodified build of the same revision now uses
+explicit `-O2 -DNDEBUG`; it reports its version in the ARM64 guest. The optimized build ran Windows `cmd.exe` in interpreter mode and printed
+`ST-OPT-CPU-PASS` with exit 0. Full-game validation remains pending. The existing
+full-game run was left intact; the optimized binary is private and is not
+included in a device update yet.
