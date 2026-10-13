@@ -178,3 +178,11 @@ marker again and exited 0. This is the clean GL4ES/GLES rendering baseline;
 there was no kernel OOM report in the VM log.
 The original game with this GLES bridge has not yet reached a verified scene;
 the earlier original-game scene used desktop software Mesa.
+
+The prepared guest can start its software X server with
+`sh /userdata/host/emulator/shared/start-xvfb.sh :95` after copying the tracked
+`tools/emulator/start-xvfb.sh` into the private analysis share. The script checks
+QEMU's virt model, preserves existing display locks, provides xkbcomp through a
+VM-only /usr/bin bind overlay, and starts Xvfb with its native Mesa paths.
+It was run on display :96 and the native GLX/GLES capability query succeeded.
+The original game test remains on :95. This script is not a handheld installer.
