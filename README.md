@@ -96,6 +96,31 @@ problem. Each mode tests both command shells with a 120-second timeout and a
 exit and include elapsed time, memory counters, and available kernel OOM reports.
 Interpreter mode is diagnostic, not a proposed gameplay performance setting.
 
+The follow-up device run passed both Windows commands in interpreter mode with
+exit status zero (105–106 seconds each). Strong-memory mode still ended with
+137 after 12–18 seconds, before the timeout. No OOM report identified the cause.
+Interpreter mode is now the verified Windows CPU baseline; graphics and usable
+game performance remain unverified.
+
+## Test native graphics
+
+Extract the latest scripts archive into `/userdata/roms/ports/`, then run:
+
+```sh
+cd /userdata/roms/ports/school-tycoon-runtime-probe
+sh test-graphics.sh
+```
+
+Share `logs/graphics.txt`, including failures. This adds a native ARM64 EGL/GLES2
+probe, tests a 16×16 off-screen pbuffer with pixel readback, and records graphics
+library and Weston-runtime metadata. It does not start Weston or modify firmware.
+No new Wine download or repeat of the Windows CPU tests is needed.
+
+A native graphics pass does not establish Wine GLX or Direct3D 8 compatibility.
+The probe's source is [native-egl-probe.c](tools/native-egl-probe.c); its rendering
+logic passed on the cloud's Mesa software renderer. Actual Mali-driver validation
+is pending.
+
 ## Findings and tools
 
 - [Executable and CatCore assessment](docs/executable-assessment.md)

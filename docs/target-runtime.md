@@ -279,3 +279,49 @@ semantics were checked with a command that printed its marker then remained
 running: the timeout returned nonzero (124), so a marker cannot falsely turn
 that case into a passing test. Actual Wine execution with these modes on the
 handheld is pending. Existing Wine files and the prefix are preserved.
+
+## Fourth Windows attempt: interpreter passes
+
+The next user logs confirm interpreter-mode Windows 64-bit and 32-bit commands
+both printed their expected markers and exited zero. Elapsed times were 105 and
+106 seconds, respectively. The aggregate log ends with `Windows CPU diagnostic
+completed successfully`. This establishes a working Windows CPU baseline under
+Box64's interpreter on the actual handheld, not usable gameplay performance.
+
+Strong-memory mode still exited 137 after 18 seconds (64-bit) and 12 seconds
+(32-bit), well below the 120-second timeout. Both printed their markers before
+being killed. These were not the runner's deadline kills. Available memory
+afterwards was approximately 372–386 MB, versus 655–671 MB in interpreter mode.
+The supplied OOM-report sections are empty; there is no evidence establishing
+an OOM cause. The responsible kill mechanism and dynamic-recompiler behavior
+remain unexplained. Interpreter mode will be the baseline for display work;
+the faster dynamic-recompiler route still needs investigation for gameplay.
+
+## Native graphics and Weston investigation
+
+The official PortMaster catalog now resolves Westonpack 0.2's ARM64 runtime to:
+https://github.com/PortsMaster/PortMaster-New/releases/download/2025-07-24_0745/weston_pkg_0.2.squashfs
+
+Its 55,398,400-byte download was verified against the catalog's published MD5
+`0a761c28877625861d9c9c4326664428` without bypassing TLS or integrity checks.
+The locally computed SHA-256 is
+`0bccaeebc11296bb1fe4278c9677cb82965c5a04bcd63745fa09d78228bc1a93`.
+The runtime includes Xwayland, ARM64 X11 libraries, and multiple GL4ES/crusty
+graphics paths. Presence alone does not prove successful Wine rendering.
+Its upstream wrapper also performs device/global-process setup and dumps the
+environment; it has been inspected but not executed by this project. A final
+launcher must provide appropriately scoped startup and logging.
+
+`tools/native-egl-probe.c` dynamically loads the installed EGL/GLES2 driver,
+creates a 16×16 RGBA8 pbuffer/context, clears it to a known color, and checks
+the readback pixel against RGBA 64/128/191/255 with a small RGB tolerance and
+no GL error. It reports the driver and API strings and releases the context.
+It requires no game assets or graphics development headers on the device.
+
+Both native host and ARM64 builds compiled with warnings treated as errors.
+The native host build passed under Mesa llvmpipe in surfaceless mode, reading
+the exact expected pixel. The ARM64 binary imports glibc symbols through 2.34.
+Actual target graphics execution is pending. `tools/test-graphics.sh` records
+the native probe's status and the installed Weston image's checksum and relevant
+file listing. It creates no visible window and does not launch the Weston
+wrapper. Its result cannot establish GLX, Direct3D 8, or game readiness.
