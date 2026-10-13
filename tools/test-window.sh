@@ -1,11 +1,20 @@
 #!/bin/sh
-# Isolated headless Weston/Xwayland + Windows GDI test. No physical display setup.
+# Isolated Weston/Xwayland + GDI or D3D8 test. D3D8 may present through SDL/Mali.
 set -eu
 window_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 wine_dir="$window_root/runtime/wine-10.0-amd64-wow64"
 weston_dir="$window_root/runtime/weston-0.2"
 weston_image=/userdata/system/.local/share/PortMaster/libs/weston_pkg_0.2.squashfs
 weston_hash=0bccaeebc11296bb1fe4278c9677cb82965c5a04bcd63745fa09d78228bc1a93
+window_mode=${1:-gdi}
+case "$window_mode" in
+    gdi) window_log=window; window_exe=windows-window-probe.exe; window_result=window-result.txt; window_marker=ST-WINDOW-PASS ;;
+    d3d8|core4es)
+        window_log=d3d8; window_exe=windows-d3d8-probe.exe
+        if [ "$window_mode" = core4es ]; then window_log=d3d8-core4es; fi
+        window_result=d3d8-result.txt; window_marker=ST-D3D8-PASS ;;
+    *) printf '%s\n' 'Usage: sh test-window.sh [gdi|d3d8|core4es]' >&2; exit 2 ;;
+esac
 if [ "$(uname -m)" != aarch64 ]; then
     printf '%s\n' 'Run this diagnostic on the ARM64 handheld.' >&2; exit 1
 fi
@@ -13,11 +22,12 @@ for window_cmd in unsquashfs sha256sum timeout date grep tr mktemp; do
     command -v "$window_cmd" >/dev/null || { printf 'Missing command: %s\n' "$window_cmd" >&2; exit 1; }
 done
 mkdir -p "$window_root/logs"
-exec > "$window_root/logs/window.txt" 2>&1
+exec > "$window_root/logs/$window_log.txt" 2>&1
 printf '%s\n' 'School Tycoon isolated Windows window diagnostic'
 test -x "$window_root/box64"
 test -x "$wine_dir/bin/wine"
-test -f "$window_root/windows-window-probe.exe"
+test -f "$window_root/$window_exe"
+printf 'Mode: %s\n' "$window_mode"
 # Xwayland binds filesystem sockets here, even with a private Wayland runtime.
 # Preserve an existing directory and its permissions; reject other path types.
 if [ -L /tmp/.X11-unix ] || { [ -e /tmp/.X11-unix ] && [ ! -d /tmp/.X11-unix ]; }; then
@@ -56,6 +66,16 @@ export WESTON_HEADLESS_WIDTH=640 WESTON_HEADLESS_HEIGHT=480
 export XWAYLAND_LD_LIBRARY_PATH="$weston_dir/lib_aarch64/graphics/mesa_x11_stub:$weston_dir/lib_aarch64"
 export LD_LIBRARY_PATH="$XWAYLAND_LD_LIBRARY_PATH"
 export PATH="$weston_dir/bin:$window_root:$wine_dir/bin:$PATH"
+mkdir -p "$window_root/font-cache"
+cat > "$window_root/runtime/window-fonts.conf" <<EOF
+<?xml version="1.0"?>
+<fontconfig>
+  <dir>$wine_dir/share/wine/fonts</dir>
+  <dir>$weston_dir/fonts</dir>
+  <cachedir>$window_root/font-cache</cachedir>
+</fontconfig>
+EOF
+export FONTCONFIG_FILE="$window_root/runtime/window-fonts.conf"
 unset LD_PRELOAD
 cat > "$window_root/runtime/window-weston.ini" <<'EOF'
 [core]
@@ -88,34 +108,48 @@ trap cleanup_window EXIT HUP INT TERM
     cd "$weston_dir"
     exec ./wp_weston -c "$window_root/runtime/window-weston.ini" -B headless \
         --use-pixman --shell=kiosk-shell.so -i0 -Sschool-tycoon-window --xwayland
-) > "$window_root/logs/window-weston.txt" 2>&1 &
+) > "$window_root/logs/$window_log-weston.txt" 2>&1 &
 weston_pid=$!
 window_wait_start=$(date +%s)
 while [ ! -S /tmp/.X11-unix/X0 ]; do
     if ! kill -0 "$weston_pid" 2>/dev/null || [ "$(($(date +%s) - window_wait_start))" -ge 30 ]; then
-        printf '%s\n' 'Weston/Xwayland did not become ready. See window-weston.txt.'
-        cat "$window_root/logs/window-weston.txt"
+        printf 'Weston/Xwayland did not become ready. See %s-weston.txt.\n' "$window_log"
+        cat "$window_root/logs/$window_log-weston.txt"
         exit 1
     fi
     sleep 0.2
 done
 export DISPLAY=:0 WAYLAND_DISPLAY=school-tycoon-window
+window_app_libpath="$LD_LIBRARY_PATH"
+window_app_preload=
+if [ "$window_mode" != gdi ]; then
+    window_gl=gl4es_glxpass
+    if [ "$window_mode" = core4es ]; then window_gl=core4es_glxpass; fi
+    window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
+    window_app_preload="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+    export CRUSTY_LIBEGL=/usr/lib/libEGL.so.1
+    export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
+    export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window
+    export SDL_VIDEODRIVER=mali
+    export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'
+fi
 # The probe's result is generated only in this run's dedicated log directory.
 cd "$window_root/logs"
-rm -f window-result.txt
+rm -f "$window_result"
 window_start=$(date +%s)
-if timeout -s TERM -k 5s 240s "$window_root/box64" "$wine_dir/bin/wine" \
-    "$window_root/windows-window-probe.exe" > window-wine.stdout.txt 2> window-wine.txt; then
+if timeout -s TERM -k 5s 300s env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
+    "$window_root/box64" "$wine_dir/bin/wine" \
+    "$window_root/$window_exe" > "$window_log-wine.stdout.txt" 2> "$window_log-wine.txt"; then
     window_status=0
 else
     window_status=$?
 fi
-cat window-wine.txt window-wine.stdout.txt
+cat "$window_log-wine.txt" "$window_log-wine.stdout.txt"
 printf 'Windows probe exit status: %s; elapsed seconds: %s\n' "$window_status" "$(($(date +%s) - window_start))"
-if [ -f window-result.txt ]; then cat window-result.txt; fi
-if [ "$window_status" = 0 ] && [ -f window-result.txt ] && tr -d '\r' < window-result.txt | grep -qx ST-WINDOW-PASS; then
-    printf '%s\n' 'Windows X11/GDI window and pixel readback: PASS'
+if [ -f "$window_result" ]; then cat "$window_result"; fi
+if [ "$window_status" = 0 ] && [ -f "$window_result" ] && tr -d '\r' < "$window_result" | grep -qx "$window_marker"; then
+    printf 'Windows %s graphics probe: PASS\n' "$window_mode"
 else
-    printf '%s\n' 'Windows X11/GDI window test: FAIL'; exit 1
+    printf 'Windows %s graphics probe: FAIL\n' "$window_mode"; exit 1
 fi
-printf '%s\n' 'This is a headless test; no window is shown on the physical screen. Direct3D 8 remains untested.'
+printf '%s\n' 'GDI runs headlessly. D3D8 modes may briefly show a colored surface via the SDL graphics bridge. No game is launched.'

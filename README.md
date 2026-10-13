@@ -152,6 +152,36 @@ Source: [test-window.sh](tools/test-window.sh) and
 same probe passed under Wine 10.0 and Xvfb in the cloud. The shipped 32-bit
 build and the ARM64 compositor integration still require target validation.
 
+The subsequent handheld run passed the 32-bit X11/GDI probe with exit zero,
+the expected marker, and a matching pixel after 139 seconds. Weston still
+asserts during teardown; that runtime cleanup defect remains recorded. The
+launcher now supplies a local font configuration for the fontconfig warnings.
+
+## Test Direct3D 8
+
+Extract the latest scripts archive and run:
+
+```sh
+cd /userdata/roms/ports/school-tycoon-runtime-probe
+sh test-window.sh d3d8 || sh test-window.sh core4es
+```
+
+Share `logs/d3d8.txt` and `logs/d3d8-weston.txt`. If the alternative ran, also
+share `logs/d3d8-core4es.txt` and `logs/d3d8-core4es-weston.txt`.
+
+The 32-bit probe loads Wine's Direct3D 8 DLL, creates a HAL device, clears a
+lockable backbuffer, checks the pixel color, and presents it. The client uses
+the installed runtime's Crusty GLX bridge and GL4ES (or Core4ES) over Mali/GLES.
+Those Wine bridge combinations are candidates, not verified target solutions.
+A colored surface may briefly appear on the physical screen in these modes.
+Allow up to five minutes per command. No game assets or runtime downloads are
+needed. GDI mode remains a purely headless test.
+
+Source: [windows-d3d8-probe.c](tools/windows-d3d8-probe.c). Both architectures
+compiled successfully; the 64-bit version passed under native Wine 10.0 with
+Mesa llvmpipe in the cloud. That validates the probe logic, not ARM/Mali support,
+game shaders, sound, controls, or performance.
+
 ## Findings and tools
 
 - [Executable and CatCore assessment](docs/executable-assessment.md)

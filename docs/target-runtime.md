@@ -377,3 +377,42 @@ preserves existing directories and permissions, rejects a symlink or non-directo
 and retains the guard against taking over X0 sockets or locks. This is temporary
 X11 socket infrastructure, not firmware configuration. Shell syntax was checked;
 target startup must be retried before claiming display readiness.
+
+## Successful target window test and Direct3D 8 candidate
+
+The following user logs confirm Weston/Xwayland startup, the 32-bit Windows
+window probe's marker, pixel validation, and exit zero after 139 seconds. The
+window/X11/GDI test passed on the target. Xwayland fell back to software
+composition, consistent with this headless test. The missing Vulkan library
+does not invalidate GDI success or establish Vulkan support. Fontconfig had
+no default configuration; the runner now creates a local configuration using
+Wine/runtime fonts and a cache inside the diagnostic directory.
+
+Weston again asserts in `linked_list_remove` during teardown after its X server
+and seat client disconnect. This is a reproducible runtime cleanup limitation,
+not a failed Windows pixel test. It remains unresolved; do not describe the
+complete compositor lifecycle as clean or the game environment as ready.
+
+`tools/windows-d3d8-probe.c` loads `d3d8.dll` and resolves `Direct3DCreate8`,
+creates a windowed HAL device with software vertex processing and a lockable
+X8R8G8B8 backbuffer, clears to a known color, reads it through LockRect, and
+presents. Only a matching color and successful calls produce `ST-D3D8-PASS`.
+Failure markers include the stage and HRESULT. Both PE32 and PE32+ builds
+compiled with warnings treated as errors and no C runtime dependency. The
+64-bit variant passed natively under Wine 10.0/Xvfb/Mesa llvmpipe in the cloud,
+with exit zero. That does not validate the target's 32-bit renderer path.
+
+The runner's `d3d8` mode adds GL4ES GLX pass-through and the runtime's Crusty GLX
+preload only to the Wine client process. It supplies the system EGL/SDL paths,
+Mali SDL backend, and upstream-style Crusty bridge settings. `core4es` selects
+the alternative provided by the same runtime. The compositor continues to use
+headless/Pixman and separate Xwayland libraries. Those client bridge settings
+can present a colored SDL surface on the physical framebuffer and have not
+yet been validated on the device. No upstream wrapper, global process kills,
+or fake DRM nodes are introduced.
+
+The runner still requires the newly generated marker and zero exit; the
+300-second timeout does not count as success. The next target artifacts are
+`logs/d3d8.txt` and `logs/d3d8-weston.txt`, plus the corresponding Core4ES logs
+if that alternative executes. Game startup, shader behavior, audio, input, and
+performance remain outstanding even if this simple Direct3D probe passes.
