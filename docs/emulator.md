@@ -186,3 +186,19 @@ QEMU's virt model, preserves existing display locks, provides xkbcomp through a
 VM-only /usr/bin bind overlay, and starts Xvfb with its native Mesa paths.
 It was run on display :96 and the native GLX/GLES capability query succeeded.
 The original game test remains on :95. This script is not a handheld installer.
+
+A stronger PE32 probe (`tools/windows-d3d8-texture-probe.c`) draws a managed
+texture on a transformed quad and checks the center pixel against a different
+color from the clear. It wrote ST-D3D8-TEXTURE-PASS and exited 0 through the
+corrected GLES bridge. This establishes textured rendering as well as clear.
+A native GLX program also produced a captured blue SDL window. However,
+holding the Windows probe open after Present returned success still gave a
+black captured frame, and the original game did not produce a verified visible
+frame through this bridge. API success and offscreen readback do not establish
+visible presentation. The update is still experimental.
+
+Further presentation experiments remain private and have not changed the
+handheld launcher: repeated presents, disabling automatic framebuffer swaps,
+separating SDL and Wine X servers, single-threaded Wine rendering, and native
+ES3 blit adapters. Only captured frames from live windows can establish an
+onscreen result; a capture after its process exits is not a presentation test.
