@@ -93,3 +93,51 @@ To extract a consistent file from an active guest disk, temporarily freeze
 **only that VM filesystem**, read it with host debugfs, then immediately thaw it.
 BusyBox uses `fsfreeze --freeze /userdata` and `--unfreeze /userdata`.
 Never run a writable filesystem repair tool against a live VM disk.
+
+## School scene and remaining failures
+
+The original game reached its main menu, accepted Play / Instant Action /
+Farmland, loaded the level and rendered the 3D school grounds and HUD, including
+buildings, trees, road, money and school statistics. Actual X11 frames were
+captured privately. Menu pointer movement and some menu interactions worked;
+building placement and save/load were not verified. The simulator ran with
+software Mesa and Box64 interpreter mode, so these results do not predict
+handheld frame rate.
+
+Further CPU tests reproduced marker output followed by status 137 in both
+32-bit and 64-bit Windows command programs. None of these experiments produced
+a verified recompiler fix: disabling disk cache, interpreting signal handlers,
+stronger flag/barrier settings, unmodified Box64 0.3.8, or an experimental
+longer Wine server shutdown grace period. The experimental server is retained
+only in the private analysis workspace and is not part of the launcher.
+
+A separate GLES bridge attempt used the distributed GL4ES/Crusty/early-EGL
+helper with software EGL/GLES and SDL's X11 backend. The isolated test exited 1
+with CreateWindow failure (0x80070578), before a successful Direct3D test. This
+is not a Mali-driver pass. Earlier CPU and bridge attempts shared a prefix;
+those comparisons were invalid because desktop/service state could interfere.
+Use a separate prefix for each graphics environment and stop only its owned
+services between tests.
+
+Native Mali rendering, a usable recompiler mode, reliable gameplay controls,
+sound, saves and actual device performance remain unresolved. The handheld
+launcher has not been changed on the strength of these failed experiments.
+
+## Profile reboot validation
+
+The checked-in launcher and rebuilt initramfs were booted with the final
+profile. The guest reported four Cortex-A53 CPUs, Linux 4.9.170, glibc 2.40,
+4096-byte pages, MemTotal **996496 KiB** (12 KiB above the device report), and
+SwapTotal **498240 KiB**, matching the reported swap. Box64 measured the
+**24.0 MHz** counter and detected **39-bit** addresses. Wine 10.0 `--version`
+again exited zero. This validates the profile reboot, not a second gameplay run.
+The VM starts with more available memory than the handheld's full frontend.
+
+The retained private startup check is mirrored in
+`tools/emulator/guest-check.sh`. It recreates only this VM's swap file and
+checks runtime versions; never execute it on a handheld or another host.
+Copy it into the read-only analysis share's `emulator/shared/guest-test.sh`
+before preparing the initramfs. The default boot ends at a guest shell.
+
+Captured frames and full traces remain private under the analysis workspace's
+`emulator/output` directory. No original game or firmware assets are tracked.

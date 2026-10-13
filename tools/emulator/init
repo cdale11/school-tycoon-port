@@ -7,14 +7,20 @@ mount -t sysfs sysfs /sys
 # virtio MMIO discovery order may reverse the command-line disk order.
 root_device= data_device=
 for device in /dev/vd?; do
-    case "$(blkid "$device")" in
-        *'TYPE="squashfs"'*) root_device=$device ;;
-        *'TYPE="ext4"'*) data_device=$device ;;
-    esac
+    if mount -t squashfs -o ro "$device" /lower 2>/dev/null; then
+        root_device=$device
+        break
+    fi
 done
-[ -n "$root_device" ] && [ -n "$data_device" ] || exec sh
-mount -t squashfs -o ro "$root_device" /lower || exec sh
-mount -t ext4 "$data_device" /lower/userdata || exec sh
+[ -n "$root_device" ] || exec sh
+for device in /dev/vd?; do
+    [ "$device" != "$root_device" ] || continue
+    if mount -t ext4 "$device" /lower/userdata 2>/dev/null; then
+        data_device=$device
+        break
+    fi
+done
+[ -n "$data_device" ] || exec sh
 mkdir -p /lower/userdata/host
 mount -t 9p -o trans=virtio,version=9p2000.L,ro,msize=262144 analysis /lower/userdata/host || exec sh
 mount --bind /dev /lower/dev
