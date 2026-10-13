@@ -1,0 +1,19 @@
+#!/bin/sh
+export PATH=/bin
+/bin/busybox --install -s /bin
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t squashfs -o ro /dev/vdb /lower || exec sh
+mount -t ext4 /dev/vda /lower/userdata || exec sh
+mkdir -p /lower/userdata/host
+mount -t 9p -o trans=virtio,version=9p2000.L,ro,cache=mmap,msize=262144 analysis /lower/userdata/host || exec sh
+mount --bind /dev /lower/dev
+mount --bind /proc /lower/proc
+mount --bind /sys /lower/sys
+mount -t tmpfs tmpfs /lower/tmp
+mount -t tmpfs tmpfs /lower/run
+cp /bin/busybox /lower/userdata/busybox
+chroot /lower /bin/bash /userdata/host/emulator/shared/guest-test.sh
+printf '\nGuest test ended; interactive rescue shell follows.\n'
+exec chroot /lower /bin/bash

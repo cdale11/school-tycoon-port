@@ -1,0 +1,18 @@
+{
+  "reported_device": "Anbernic RG34XXSP / KNULLI Scarab 20260511",
+  "architecture": "aarch64",
+  "cpu": "cortex-a53",
+  "cores": 4,
+  "kernel": "4.9.170",
+  "page_bytes": 4096,
+  "virtual_address_bits": 39,
+  "glibc": "2.40",
+  "reported_memtotal_kib": 996484,
+  "vm_ram_mib": 1007,
+  "reported_swap_kib": 498240,
+  "userspace_substitution": "KNULLI Gladiator II 20250813, Buildroot 2024.11 / glibc 2.40",
+  "firmware_sha256": "098ac3c6a925522f9d95de04c4bb730b5e1f81bb86fc5275f71a2f2bb00af34f",
+  "rootfs_sha256": "a9e059e06bdf37dbc6b364bfc8ac5489092b2fd86dc85a832d25ef626dc17873",
+  "kernel_source_commit": "ad387ec4bcdf087faaf084a3db8f681295463b01",
+  "unemulated_hardware": ["H700 board", "Mali-G31 GPU / libmali", "display panel", "audio", "physical controls"]
+}
