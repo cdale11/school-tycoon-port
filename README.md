@@ -79,6 +79,23 @@ These tests remain unverified on the device. A pass validates Windows CPU
 execution only; Wine's display driver, Direct3D 8, audio, and gameplay require
 separate tests.
 
+The latest device logs contain both Windows markers, but both commands ended
+with exit status 137. Windows code execution is demonstrated; successful
+shutdown is still unresolved. To investigate, extract the updated scripts
+archive (no Wine download needed) and run:
+
+```sh
+sh test-wine.sh strongmem || sh test-wine.sh interpreter
+```
+
+The first mode enables Box64's documented strong memory emulation. If it fails,
+the second disables dynamic recompilation to isolate a possible recompiler
+problem. Each mode tests both command shells with a 120-second timeout and a
+5-second termination grace period. Share `logs/wine-strongmem.txt` and, if run,
+`logs/wine-interpreter.txt`. The logs distinguish a printed marker from a clean
+exit and include elapsed time, memory counters, and available kernel OOM reports.
+Interpreter mode is diagnostic, not a proposed gameplay performance setting.
+
 ## Findings and tools
 
 - [Executable and CatCore assessment](docs/executable-assessment.md)

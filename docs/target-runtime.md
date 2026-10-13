@@ -249,3 +249,33 @@ Source references:
 - https://github.com/wine-mirror/wine/blob/wine-11.19/dlls/ntdll/unix/virtual.c
 - https://github.com/wine-mirror/wine/blob/wine-10.0/dlls/ntdll/unix/virtual.c
 - https://github.com/Kron4ek/Wine-Builds/releases/tag/10.0
+
+## Third Windows attempt: markers printed, exit status 137
+
+The next user upload contains exact `ST-WINE64-PASS` and `ST-WINE32-PASS`
+stdout lines. Thus both command-shell executables reached Windows command
+execution under Box64/Wine 10.0 on the handheld. Both runner statuses are 137,
+and stderr ends with `Killed`. The test correctly reports failure despite the
+markers; clean process termination is not established. Exit 137 can result from
+a timeout or another SIGKILL source, including OOM; the uploaded logs do not
+establish which. No allocation assertion from the Wine 11.19 run appears here.
+
+The updated runner records elapsed time against a 120-second timeout with an
+explicit TERM signal and 5-second kill grace period. It records memory/swap
+counters and available kernel OOM messages (which may include older events),
+reports marker execution separately from exit status, and stops only its own
+Wine-prefix services between tests. Headless window-driver errors cannot alone
+explain this shutdown failure; a graphics capability claim remains unwarranted.
+
+Two documented Box64 settings can now be tested via script arguments:
+
+- `strongmem`: dynamic recompilation enabled with
+  `BOX64_DYNAREC_STRONGMEM=2`, adding memory barriers including SIMD writes.
+- `interpreter`: `BOX64_DYNAREC=0`, to compare against dynamic recompilation.
+
+These are diagnostic hypotheses, not confirmed fixes. Both modes successfully
+executed an x86_64 command under QEMU AArch64 in the cloud. The runner's timeout
+semantics were checked with a command that printed its marker then remained
+running: the timeout returned nonzero (124), so a marker cannot falsely turn
+that case into a passing test. Actual Wine execution with these modes on the
+handheld is pending. Existing Wine files and the prefix are preserved.
