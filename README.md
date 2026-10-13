@@ -16,7 +16,7 @@ prefix. It adds the native graphics helper and updates the launcher/installer. M
 links left by a removed probe folder are handled safely; a missing prefix link
 is preserved for recovery. Verified Wine downloads are cached, so an extraction
 failure does not require another network download. Interrupted prefix setup is
-completed before game startup, restoring only missing Wine WoW64 DLLs.
+completed before game startup, restoring missing builtin modules for both architectures and verifying a 32-bit Windows command.
 
 ## Install and launch
 

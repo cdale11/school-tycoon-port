@@ -21,3 +21,15 @@ bridge. It restores missing WoW64 modules from the installed Wine runtime,
 preserves existing DLLs and saves, and runs Wine's 64-bit prefix updater in the private X11 session with its native
 libraries, before enabling Crusty. Progress/errors are in logs/prefix-setup.txt. A failed repair
 is retried on the next launch; do not delete the prefix.
+
+The newest repair restores missing builtin DLLs/apps/drivers for both Windows
+architectures from the installed Wine runtime, before and after its update.
+Nonempty existing modules are preserved. It then executes a 32-bit Windows
+command and requires both its exact success marker and exit zero before starting
+the game. An updater exit-zero alone is no longer treated as readiness.
+
+Repair stages: up to five minutes for Wine update, then up to two minutes for
+32-bit verification, plus service cleanup. Both stages are logged in prefix-setup.txt.
+Additional command output is saved in prefix-32.txt and prefix-32.stdout.txt.
+Previously verified prefixes skip repeated repair. This does not validate game
+rendering or performance; those remain unresolved until a successful device run.

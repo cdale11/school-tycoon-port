@@ -14,8 +14,12 @@ with tempfile.TemporaryDirectory(prefix='st-prefix-') as tmp:
     shutil.copy2(repo/'tools/prepare-prefix.sh',root/'prepare-prefix.sh')
     builtin=root/'runtime/wine-10.0-amd64-wow64/lib/wine/x86_64-windows'
     builtin.mkdir(parents=True)
-    for name in ['wow64.dll','wow64cpu.dll','wow64win.dll']:
+    for name in ['wow64.dll','wow64cpu.dll','wow64win.dll','kernel32.dll','kernelbase.dll','ntdll.dll','wineboot.exe']:
         (builtin/name).write_text('runtime-builtin-'+name)
+    builtin32=root/'runtime/wine-10.0-amd64-wow64/lib/wine/i386-windows'
+    builtin32.mkdir()
+    for name in ['kernel32.dll','kernelbase.dll','ntdll.dll','cmd.exe']:
+        (builtin32/name).write_text('32-bit-builtin-'+name)
     system32=root/'prefix-wine-10.0/drive_c/windows/system32'
     system32.mkdir(parents=True)
     (system32/'wow64.dll').symlink_to(root/'removed-wow64.dll')
@@ -28,6 +32,11 @@ import sys,os,json
 from pathlib import Path
 root=Path(__file__).resolve().parent
 if sys.argv[1].endswith('wineserver'): sys.exit(0)
+if sys.argv[2].endswith('cmd.exe'):
+ if (root/'bad32').exists(): sys.exit(53)
+ if (root/'no-marker').exists(): sys.exit(0)
+ print('ST-PREFIX32-PASS')
+ sys.exit(0)
 (root/'bootstrap.json').write_text(json.dumps({'args':sys.argv[2:], 'preload':os.environ.get('LD_PRELOAD'), 'display':os.environ.get('DISPLAY'), 'cpu':os.environ.get('BOX64_DYNAREC')}))
 if (root/'fail').exists(): sys.exit(7)
 ''')
@@ -45,9 +54,20 @@ if (root/'fail').exists(): sys.exit(7)
     data=json.loads((root/'bootstrap.json').read_text())
     assert data=={'args':[str(builtin/'wineboot.exe'),'-u'],'preload':None,'display':':123','cpu':'0'},data
     (root/'fail').unlink()
+    (root/'bad32').touch()
+    rejected=run()
+    assert rejected.returncode==1 and not (root/'runtime/prefix-32bit-verified').exists()
+    assert (root/'runtime/prefix-repair-pending').exists()
+    (root/'bad32').unlink()
+    (root/'no-marker').touch()
+    empty_success=run()
+    assert empty_success.returncode==1 and not (root/'runtime/prefix-32bit-verified').exists()
+    (root/'no-marker').unlink()
     completed=run()
     assert completed.returncode==0,(completed.stdout,completed.stderr)
     assert not (root/'runtime/prefix-repair-pending').exists()
+    assert (root/'runtime/prefix-32bit-verified').exists()
+    assert (root/'prefix-wine-10.0/drive_c/windows/syswow64/kernel32.dll').read_text()=='32-bit-builtin-kernel32.dll'
     (root/'bootstrap.json').unlink()
     again=run()
     assert again.returncode==0 and not (root/'bootstrap.json').exists()

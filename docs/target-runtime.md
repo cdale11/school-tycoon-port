@@ -552,3 +552,34 @@ preserving existing files/saves and retry behavior.
 The revised updater also completed with real native Wine 10.0/Xvfb in the cloud
 and cleared its pending marker. This validates the updater invocation and X11
 integration on the host, not ARM64 interpreter timing or handheld rendering.
+
+## Updater success did not establish a usable Windows prefix
+
+The latest device repair reported exit zero, but the subsequent game process
+exited 53 with "could not load kernel32.dll, status c0000135". The earlier
+readiness gate checked only the three WoW64 DLLs, which was insufficient. The
+updater logged copy-style warnings and service/loader lock timeouts. These logs
+do not identify which kernel32 dependency is absent without a prefix inventory.
+
+Repair now restores any missing/empty Wine builtin DLL, EXE, DRV or SYS from
+x86_64-windows into system32 and i386-windows into syswow64, before updating and
+again after stopping background setup. Existing nonempty modules and user files
+are preserved; existing empty files/dangling links are backed up. It then runs
+the prefix's 32-bit cmd.exe and requires exit zero plus an exact marker before
+writing a verification stamp and proceeding to the game. Failures retain the
+pending marker and stop startup. This automatically checks the supported
+32-bit CPU path previously demonstrated on the handheld with Box64 interpreter.
+
+The integration checks passed restoration for both architectures, preservation,
+clean display/bootstrap environment, rejection of exit-zero without a marker,
+rejection of a failed 32-bit command, failure retries, and verified-prefix reuse.
+The host's real Wine updater still completed, but its native 32-bit cmd check
+segfaulted (139); no successful cloud native-32-bit baseline is claimed. Earlier
+original-game native WoW64 attempts also segfaulted in this cloud environment.
+The device verification remains required. Most importantly, this update will no
+longer call a prefix ready solely because wineboot returned zero.
+
+Bounds remain 300 seconds for update and 120 seconds for the 32-bit execution
+check, with bounded service cleanup. Game startup begins only after both stages
+succeed. Hardware graphics, original-game behavior and performance are still
+unverified; this is another bootstrap repair, not a completed playable port.
