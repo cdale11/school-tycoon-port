@@ -68,6 +68,7 @@ with tempfile.TemporaryDirectory(prefix='st-installer-') as tmp:
     (probe/'weston-0.2').mkdir()
     shutil.copy2(repo/'packaging/School Tycoon.sh',ports/'School Tycoon.sh')
     shutil.copy2(repo/'tools/prepare-wine.sh',game/'prepare-wine.sh')
+    executable(game/'prepare-prefix.sh','#!/bin/sh\necho prefix-setup-reached\n')
     executable(game/'run-game.sh','#!/bin/sh\necho game-session-reached\n')
     result=subprocess.run(['sh',str(ports/'School Tycoon.sh')],env=env,timeout=20)
     assert result.returncode==0

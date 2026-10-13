@@ -503,3 +503,28 @@ broken runtime link removal, failed extraction retaining the verified cache,
 successful real extraction/install, second-launch reuse without downloading,
 and Ports-entry recovery preserving a dangling prefix link. These validate
 installer behavior; they are not gameplay or handheld graphics passes.
+
+## Interrupted prefix / missing WoW64 module
+
+The restarted handheld run exited 53: init_wow64 could not load
+C:\windows\system32\wow64.dll (c0000135). Native EGL priming passed, but game
+startup and rendering were never reached. This is not a renderer pass. The
+five-minute timer is irrelevant to a run that has already exited.
+
+A new prepare-prefix.sh restores only missing/empty wow64.dll, wow64cpu.dll,
+and wow64win.dll from the installed Wine 10.0 x86_64-windows directory. Existing
+empty files/links are preserved under dated backup names, and existing nonempty
+modules and saves remain intact. It then runs the 64-bit wineboot.exe -u in
+interpreter mode, without display variables, LD_PRELOAD or the graphics target
+selector. A pending marker preserves retries when update fails or is interrupted.
+Successful prefixes skip repeated repair. Launcher errors and setup logs are
+captured before the graphical session is started.
+
+Validation: the recovery integration test passed missing-module restoration,
+existing-module/save preservation, clean bootstrap environment, failure retry,
+and subsequent reuse. The same updater command completed successfully with the
+real Wine 10.0 runtime against a fresh cloud-host prefix, restoring the WoW64
+files; expected headless window warnings were present. Native-host Wine bootstrap
+success does not validate Box64/handheld setup speed or 32-bit game rendering.
+The runtime-install/Ports-entry integration check also passed after adding the
+new bootstrap stage. No game or save files are present in the update archive.

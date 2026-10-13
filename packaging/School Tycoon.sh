@@ -37,6 +37,7 @@ if [ ! -e "$game_root/prefix-wine-10.0" ] && [ -d "$ports_dir/school-tycoon-runt
     ln -s "$ports_dir/school-tycoon-runtime-probe/prefix-wine-10.0" "$game_root/prefix-wine-10.0"
 fi
 sh "$game_root/prepare-wine.sh"
+sh "$game_root/prepare-prefix.sh"
 if [ -f /tmp/gamecontrollerdb.txt ]; then
     export SDL_GAMECONTROLLERCONFIG_FILE=/tmp/gamecontrollerdb.txt
 fi

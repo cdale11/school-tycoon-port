@@ -15,7 +15,8 @@ School Tycoon again. The update includes no game assets, settings, saves or Wine
 prefix. It adds the native graphics helper and updates the launcher/installer. Missing-target
 links left by a removed probe folder are handled safely; a missing prefix link
 is preserved for recovery. Verified Wine downloads are cached, so an extraction
-failure does not require another network download.
+failure does not require another network download. Interrupted prefix setup is
+completed before game startup, restoring only missing Wine WoW64 DLLs.
 
 ## Install and launch
 
