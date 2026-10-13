@@ -173,6 +173,8 @@ the actual PE32 Direct3D 8 probe wrote ST-D3D8-PASS: CreateDevice, Clear,
 LockRect pixel readback and Present succeeded through GL4ES/GLES. Those sessions
 still exited 137 during shutdown, including an interpreter client connected to
 a recompiler server. Rendering success is distinct from clean process exit.
-A fresh session with all Wine processes in interpreter mode is being checked.
+A fresh session with all Wine processes in interpreter mode then wrote the
+marker again and exited 0. This is the clean GL4ES/GLES rendering baseline;
+there was no kernel OOM report in the VM log.
 The original game with this GLES bridge has not yet reached a verified scene;
 the earlier original-game scene used desktop software Mesa.
