@@ -9,6 +9,9 @@ The latest graphics fix selects GL4ES explicitly for Wine and preserves the
 bundled bridge's framebuffer configuration handles after enumeration arrays
 are freed. Direct3D 8 clear/readback/present now passes through GL4ES in the
 ARM64 VM; this remains a software GLES test, not a handheld gameplay pass.
+The presentation helper now uses native ES3 framebuffer copies and the
+original game's main menu is visible through the GLES bridge in the VM.
+Handheld rendering and usable performance remain unverified.
 
 ## Update an existing installation
 

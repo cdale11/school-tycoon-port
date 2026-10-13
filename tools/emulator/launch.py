@@ -11,6 +11,8 @@ parser.add_argument('--vm-dir', type=Path, required=True)
 parser.add_argument('--analysis-dir', type=Path, required=True,
                     help='Read-only share containing private runtime/game files')
 parser.add_argument('--qemu', type=Path, required=True)
+parser.add_argument('--socket-console', action='store_true',
+                    help='Use reconnectable private UNIX serial/monitor sockets')
 args = parser.parse_args()
 profile = json.loads(Path(__file__).with_name('rg34xxsp.json').read_text())
 vm = args.vm_dir.resolve()
@@ -38,4 +40,10 @@ command = [str(args.qemu.resolve()), '-machine', 'virt,gic-version=2,highmem=off
            '-fsdev', f'local,id=analysis,path={args.analysis_dir.resolve()},security_model=none,readonly=on',
            '-device', 'virtio-9p-device,fsdev=analysis,mount_tag=analysis',
            '-nic', 'none', '-nographic']
+if args.socket_console:
+    for name in ('serial.sock', 'monitor.sock'):
+        if (vm / name).exists():
+            parser.error(f'Socket path already exists; check its owner before reusing it: {vm / name}')
+    command += ['-serial', f'unix:{vm}/serial.sock,server=on,wait=off',
+                '-monitor', f'unix:{vm}/monitor.sock,server=on,wait=off']
 raise SystemExit(subprocess.call(command, env=os.environ.copy()))

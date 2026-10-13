@@ -142,6 +142,14 @@ if [ "$window_mode" != gdi ]; then
     test -f "$window_root/runtime/graphics/libst-glx-config.so"
     export ST_CRUSTY_LIBRARY="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
     window_app_preload="$window_root/runtime/graphics/libst-glx-config.so:$window_root/runtime/graphics/libst-egl-prime.so:$ST_CRUSTY_LIBRARY"
+    window_gles=20
+    if [ "$window_gl" = gl4es_glxpass ]; then
+        test -f "$window_root/runtime/graphics/libst-gl-present.so"
+        window_app_preload="$window_root/runtime/graphics/libst-gl-present.so:$window_app_preload"
+        window_gles=30
+        # Crusty supplies one native context rather than GLX context switching.
+        export WINE_D3D_CONFIG=csmt=0
+    fi
     if [ "$window_mode" = game ]; then
         export ST_EGL_TARGET=SchoolTycoon.exe
     else
@@ -151,9 +159,10 @@ if [ "$window_mode" != gdi ]; then
     export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
     export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window
     export SDL_VIDEODRIVER=mali
-    # Avoid auto-selected GLES 3.2 and ambiguous library resolution in SDL.
+    # Request ES3 explicitly for native framebuffer copies, while GL4ES uses
+    # its ES2 translation backend. Keep native library resolution explicit.
     # These are native ARM libraries, never x86 copies from Wine.
-    export CRUSTY_GLES=20 SDL_OPENGL_ES_DRIVER=1
+    export CRUSTY_GLES="$window_gles" SDL_OPENGL_ES_DRIVER=1
     export SDL_VIDEO_EGL_DRIVER=/usr/lib/libEGL.so.1
     export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
     # Box64 otherwise inherits SDL_VIDEO_GL_DRIVER as its desktop libGL.

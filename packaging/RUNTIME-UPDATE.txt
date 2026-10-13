@@ -44,3 +44,13 @@ The new native libst-glx-config.so helper must accompany run-game.sh.
 These fixes pass native lifetime checks and the ARM64 VM Direct3D 8 rendering
 probe. The VM uses software GLES and SDL X11; Mali gameplay is still unverified.
 No reset, Wine download, or game-data deletion is required for this update.
+
+The presentation helper now routes framebuffer copies through native GLES 3,
+preserving the previous native framebuffer bindings. This fixes the tested
+black-frame transfer between Wine's rendered texture and the SDL window.
+GL4ES still handles the desktop OpenGL API. The launcher requests an ES3
+context and uses single-threaded Wine rendering for Crusty's single context.
+Keep libst-gl-present.so, libst-glx-config.so and libst-egl-prime.so together
+with the updated run-game.sh. No prefix or game-data reset is needed.
+The original main menu is now visible through this path in the ARM64 VM.
+Level interaction, handheld Mali rendering and performance remain under test.

@@ -202,3 +202,46 @@ handheld launcher: repeated presents, disabling automatic framebuffer swaps,
 separating SDL and Wine X servers, single-threaded Wine rendering, and native
 ES3 blit adapters. Only captured frames from live windows can establish an
 onscreen result; a capture after its process exits is not a presentation test.
+
+## Visible GLES presentation correction
+
+The native framebuffer-copy helper (`tools/st-gl-present.c`) intercepts the
+bridge's GLX procedure resolver using the bridge's explicit loaded handle.
+Wine's GLES rendering completed into offscreen textures, but its original
+framebuffer-copy route produced no visible output. The helper reads GL4ES's
+framebuffer identifiers, binds those native GLES 3 read/draw targets, copies
+through the driver's core operation, and restores the previous native bindings.
+Other OpenGL procedures retain their original implementation and the bridge's
+backend initialization still executes. The launcher requests ES3 while GL4ES
+continues to translate desktop GL through its ES2 backend.
+
+A held Windows D3D8 probe produced a captured blue rectangle after the corrected
+copy. The original executable then displayed its complete main menu and accepted
+Play, showing Challenge Mode / Instant Action / Load Game / Tutorial. Captured
+frames remain private (`game-visible-focused.png`, `game-after-play.png`). This
+is original-game execution through GL4ES/GLES, rather than the earlier desktop
+software Mesa route. A VM focus correction was required: Xvfb had PointerRoot
+focus, and explicitly focusing the Wine game window made its input active.
+Level loading and interaction still require validation.
+
+The final native helper was also tested with
+`tools/emulator/native-blit-probe.c`: actual GL4ES texture/FBO creation, native
+GLES copy, RGBA 64/128/191/255 readback, and unchanged native read/draw bindings.
+It printed ST-NATIVE-BLIT-PASS and exited 0. No experimental native blit adapter
+or verbose swap instrumentation is part of the handheld package.
+
+For VM presentation, SDL can use a separate X server from Wine, approximating
+Mali's independent display path. The private XOpenDisplay interposer used for
+that substitution is a VM aid and is not shipped to the handheld.
+
+## Reconnecting the cloud console
+
+The cloud tool session registry changed while the VM process was still running.
+The files survived but its original stdio console could no longer be resumed.
+After restarting only the owned VM, `launch.py --socket-console` was boot-tested:
+serial.sock and monitor.sock are private UNIX sockets in the VM directory.
+Attach with `python3 tools/emulator/console.py /path/to/vm/serial.sock`.
+The console client was stopped and reattached without stopping the VM, and the
+monitor reported running. A stale socket path is rejected; check its owner and
+stop only this task's VM before removing stale sockets. Do not start two QEMU
+processes against the writable data disk.
