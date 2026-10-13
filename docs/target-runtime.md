@@ -362,3 +362,18 @@ The actual 32-bit probe and target compositor startup remain pending.
 This is a headless Windows/X11/GDI test, not a physical-screen preview or a
 Direct3D test. The next target artifacts are `logs/window.txt` and
 `logs/window-weston.txt`.
+
+## First window attempt: absent X11 socket directory
+
+The target log confirms Weston loaded the headless backend, Pixman renderer,
+kiosk shell, and Xwayland module. Xwayland then failed to bind
+`/tmp/.X11-unix/X0` with No such file or directory. The missing parent directory
+was an omitted launcher prerequisite. No Windows window probe ran. The later
+linked-list assertion occurred during compositor cleanup after that failure;
+it has not been diagnosed as an independent blocker.
+
+The launcher now creates `/tmp/.X11-unix` with mode 1777 only if absent. It
+preserves existing directories and permissions, rejects a symlink or non-directory,
+and retains the guard against taking over X0 sockets or locks. This is temporary
+X11 socket infrastructure, not firmware configuration. Shell syntax was checked;
+target startup must be retried before claiming display readiness.

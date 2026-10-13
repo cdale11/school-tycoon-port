@@ -18,6 +18,16 @@ printf '%s\n' 'School Tycoon isolated Windows window diagnostic'
 test -x "$window_root/box64"
 test -x "$wine_dir/bin/wine"
 test -f "$window_root/windows-window-probe.exe"
+# Xwayland binds filesystem sockets here, even with a private Wayland runtime.
+# Preserve an existing directory and its permissions; reject other path types.
+if [ -L /tmp/.X11-unix ] || { [ -e /tmp/.X11-unix ] && [ ! -d /tmp/.X11-unix ]; }; then
+    printf '%s\n' '/tmp/.X11-unix is not a plain directory; leaving it untouched.'
+    exit 1
+fi
+if [ ! -d /tmp/.X11-unix ]; then
+    mkdir -m 1777 /tmp/.X11-unix
+    printf '%s\n' 'Created the temporary X11 socket directory.'
+fi
 # Do not take over another X server or remove its lock files.
 if [ -e /tmp/.X0-lock ] || [ -S /tmp/.X11-unix/X0 ]; then
     printf '%s\n' 'An X0 lock/socket already exists. Leave it intact and report this log.'
