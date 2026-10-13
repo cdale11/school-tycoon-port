@@ -22,7 +22,8 @@ outside this repository. The current cloud workspace retains them under
 - Linux tag `v4.9.170`, commit `ad387ec4bcdf087faaf084a3db8f681295463b01`.
   Build ARM64 defconfig with `CONFIG_ARM64_VA_BITS_39=y`,
   `CONFIG_ARM64_VA_BITS=39`, `CONFIG_HZ_100=y`, built-in virtio block/MMIO,
-  9p/virtio and gzip squashfs. GCC 14 build uses `HOSTCFLAGS=-fcommon`
+  9p/virtio, gzip squashfs, `CONFIG_HW_RANDOM=y` and
+  `CONFIG_HW_RANDOM_VIRTIO=y`. GCC 14 build uses `HOSTCFLAGS=-fcommon`
   for the older bundled device-tree compiler and `KCFLAGS=-Wno-error`.
 - Official KNULLI image downloaded from the `20250813` GitHub release;
   publisher SHA256 is recorded in the profile. Extract `boot/batocera` from
@@ -245,3 +246,21 @@ The console client was stopped and reattached without stopping the VM, and the
 monitor reported running. A stale socket path is rejected; check its owner and
 stop only this task's VM before removing stale sockets. Do not start two QEMU
 processes against the writable data disk.
+
+## Cold-boot entropy (2026-10-13)
+
+A restarted VM stalled in `SyS_getrandom` before the game initialized.
+The Linux 4.9 CRNG had not initialized; this VM previously had no hardware
+random source. A private fresh host-CSPRNG seed supplied through
+`RNDADDENTROPY` unblocked that run, after which the original intro, main menu
+and Farmland selection and level-loading screens rendered through the
+corrected GLES path. The level test is still in progress; no GLES gameplay
+pass is claimed.
+This was an emulator startup fault, not evidence of a handheld Wine fault.
+
+The launcher now requires built-in virtio random support and supplies a
+`virtio-rng-device` backed by the host's `/dev/urandom`.
+The Linux 4.9.170 virtio RNG driver sets its quality to 1000, allowing
+the kernel to credit this trusted host entropy without a global override.
+No deterministic seeds or game assets are included. Cold-boot validation of
+this permanent device setup remains pending.

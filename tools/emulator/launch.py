@@ -18,7 +18,8 @@ profile = json.loads(Path(__file__).with_name('rg34xxsp.json').read_text())
 vm = args.vm_dir.resolve()
 config = (vm / 'linux-4.9.170/.config').read_text()
 for setting in ('CONFIG_ARM64_4K_PAGES=y', 'CONFIG_ARM64_VA_BITS=39',
-                'CONFIG_VIRTIO_BLK=y', 'CONFIG_NET_9P_VIRTIO=y', 'CONFIG_SQUASHFS=y'):
+                'CONFIG_VIRTIO_BLK=y', 'CONFIG_NET_9P_VIRTIO=y', 'CONFIG_SQUASHFS=y',
+                'CONFIG_HW_RANDOM=y', 'CONFIG_HW_RANDOM_VIRTIO=y'):
     if setting not in config.splitlines():
         parser.error(f'Kernel prerequisite missing: {setting}')
 for name in ('linux-4.9.170/arch/arm64/boot/Image', 'initrd.gz',
@@ -39,6 +40,8 @@ command = [str(args.qemu.resolve()), '-machine', 'virt,gic-version=2,highmem=off
            '-device', 'virtio-blk-device,drive=data',
            '-fsdev', f'local,id=analysis,path={args.analysis_dir.resolve()},security_model=none,readonly=on',
            '-device', 'virtio-9p-device,fsdev=analysis,mount_tag=analysis',
+           '-object', 'rng-random,id=hostrng,filename=/dev/urandom',
+           '-device', 'virtio-rng-device,rng=hostrng',
            '-nic', 'none', '-nographic']
 if args.socket_console:
     for name in ('serial.sock', 'monitor.sock'):
