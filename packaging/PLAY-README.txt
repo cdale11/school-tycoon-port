@@ -1,8 +1,8 @@
 School Tycoon — experimental full-game launcher for KNULLI RG34XXSP
 
 This launches the original game, not a diagnostic. It is NOT a verified playable
-port. Latest device tests failed to create Direct3D 8; the new GLES selection is
-an unverified workaround. The verified CPU interpreter can be very slow.
+port. Latest device tests failed to create Direct3D 8; the early EGL initialization helper is
+an unverified workaround on Mali. The verified CPU interpreter can be very slow.
 
 INSTALL
 Extract beside your other Ports, under /userdata/roms/ports/.

@@ -1,9 +1,18 @@
 # School Tycoon for RG34XXSP
 
 An experimental launcher for the original School Tycoon (2004) on KNULLI Scarab.
-**A playable port is not yet verified.** The latest handheld tests fail during
-Direct3D 8 initialization. This package launches the actual game with a revised
-GLES configuration; that workaround has not been tested on the handheld.
+**A playable port is not yet verified.** The latest handheld game run reaches audio/session setup but fails during
+Direct3D 8 initialization. The current update loads EGL/SDL directly and primes
+native EGL before Wine creates its Windows address mappings. This targeted
+workaround has passed cloud EGL checks but has not been verified on Mali.
+
+## Update an existing installation
+
+Exit School Tycoon first. Extract
+[school-tycoon-graphics-update.tar.gz](releases/school-tycoon-graphics-update.tar.gz)
+into `/userdata/roms/ports/`, replacing the included launcher files, then launch
+School Tycoon again. The update includes no game assets, settings, saves or Wine
+prefix. It adds a native bridge helper and updates `school-tycoon/run-game.sh`.
 
 ## Install and launch
 
@@ -39,7 +48,7 @@ See [installation and controls](packaging/PLAY-README.txt) for details.
   using stand-in runtimes; ARM64 helper build (glibc 2.34 maximum requirement).
 - **Failed on handheld:** GL4ES could not create its SDL/Mali window; Core4ES
   lacked `glAccum`, causing Wine to disable OpenGL. Both failed Direct3DCreate8.
-- **Unverified:** revised native GLES library selection, game rendering, sound,
+- **Unverified:** early EGL initialization on Mali, game rendering, sound,
   saves, physical controls and usable performance. A cloud attempt to run the
   original 32-bit executable under native Wine 10.0 exited with segmentation
   fault; it does not supply a successful gameplay baseline.
@@ -55,6 +64,7 @@ an unresolved teardown assertion. These are material remaining porting blockers.
 - [Executable assessment](docs/executable-assessment.md)
 - [Earlier diagnostics](docs/diagnostic-history.md)
 - [Controller source](tools/st-controls.c)
+- [EGL bridge helper](tools/st-egl-prime.c)
 - [Session launcher](tools/test-window.sh)
 
 Run `python3 tests/launcher-integration.py` for session orchestration checks.

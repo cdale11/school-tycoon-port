@@ -134,7 +134,13 @@ if [ "$window_mode" != gdi ]; then
     window_gl=gl4es_glxpass
     if [ "$window_mode" = core4es ]; then window_gl=core4es_glxpass; fi
     window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
-    window_app_preload="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+    test -f "$window_root/runtime/graphics/libst-egl-prime.so"
+    window_app_preload="$window_root/runtime/graphics/libst-egl-prime.so:$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+    if [ "$window_mode" = game ]; then
+        export ST_EGL_TARGET=SchoolTycoon.exe
+    else
+        export ST_EGL_TARGET=windows-d3d8-probe.exe
+    fi
     export CRUSTY_LIBEGL=/usr/lib/libEGL.so.1
     export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
     export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window

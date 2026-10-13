@@ -446,3 +446,35 @@ A fresh cloud attempt with the original executable, Wine 10.0, and Xvfb exited
 startup baseline. Interpreter mode remains the default; conservative dynarec
 is opt-in and unverified. Original game assets are included only in a private
 workspace archive for their uploader, never in the GitHub package.
+
+## Targeted native EGL initialization update
+
+The full-game device run reached DirectMusic and created the Session Manager,
+then failed exactly as the earlier probe: tracking-handle mapping failure,
+SDL window creation failure, and Direct3DCreate8 initialization failure. Waiting
+cannot recover this renderer initialization error. Asset placement was valid.
+
+The installed Crusty binary's exported load_lib_local entry point loads EGL and
+SDL through fixed /tmp/CRUSTY_LIB*64.so aliases; create_symlink leaves an existing
+alias unchanged. The new MIT helper interposes this exported loader through its
+PLT and loads the requested native absolute paths directly, avoiding those
+persistent aliases. The binary's AArch64 JUMP_SLOT relocation for load_lib_local
+was inspected to establish that this hook is applicable.
+
+The helper also recognizes the game/probe argument in /proc/self/cmdline and
+initializes EGL_DEFAULT_DISPLAY in a native ELF constructor, before Box64 starts
+Wine and Wine reserves its Windows virtual address ranges. It retains the EGL
+handle for the process lifetime. This tests the hypothesis that delayed Mali
+tracking-handle allocation conflicts with those mappings; the supplied logs do
+not contain mmap errno/address evidence proving that cause. A driver failure
+at this earlier stage exits status 1 with an explicit message instead of launching
+into a black screen. Non-target Wine services skip early GPU initialization.
+
+Cloud checks passed using real Mesa EGL/GLES: early initialization and native
+pixel readback, target filtering, direct library-loader API, and missing-library
+failure/exit. The launcher integration check verifies that only the Wine child
+gets the two-library preload (helper before Crusty) and the game target selector,
+as well as cwd/status/cleanup. Native ARM64 compilation passed with warnings
+as errors; the helper requires glibc at most 2.34. These are not handheld or
+Direct3D/gameplay passes. Device verification remains required, with the helper's
+status captured automatically in game-wine.txt.
