@@ -26,7 +26,7 @@ for name in ('linux-4.9.170/arch/arm64/boot/Image', 'initrd.gz',
 # Guest has no network device. Original assets are read-only on the host;
 # Wine, prefix, logs and test copies use the separate guest ext4 disk.
 command = [str(args.qemu.resolve()), '-machine', 'virt,gic-version=2,highmem=off',
-           '-cpu', profile['cpu'], '-smp', str(profile['cores']),
+           '-cpu', f"{profile['cpu']},cntfrq={profile['reported_counter_hz']}", '-smp', str(profile['cores']),
            '-m', str(profile['vm_ram_mib']), '-accel', 'tcg,thread=multi',
            '-kernel', str(vm / 'linux-4.9.170/arch/arm64/boot/Image'),
            '-initrd', str(vm / 'initrd.gz'),

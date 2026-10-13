@@ -64,6 +64,7 @@ an unresolved teardown assertion. These are material remaining porting blockers.
 
 ## Development
 
+- [ARM64 VM tests and limitations](docs/emulator.md)
 - [Runtime findings](docs/target-runtime.md)
 - [Executable assessment](docs/executable-assessment.md)
 - [Earlier diagnostics](docs/diagnostic-history.md)
