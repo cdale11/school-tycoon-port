@@ -83,8 +83,8 @@ libraries; those prerequisites have not been established on this firmware.
 
 The display connection needed by Wine, a compatible GL4ES build, the native
 loader/libc, and shader support are outstanding prerequisites. Installed Weston
-alone does not demonstrate that Wine's window driver works. No runtime has been
-installed on or executed by the target.
+alone does not demonstrate that Wine's window driver works. No Windows runtime
+has yet been installed on or executed by the target.
 
 Do not select DXVK as the default: no usable Vulkan driver is demonstrated.
 Do not equate a GL4ES presence or GL version override with successful WineD3D
@@ -120,7 +120,8 @@ support mechanisms, not a tested School Tycoon port.
 4. Launch with the complete asset tree, capture logs, and test menus, scenario
    simulation, sound, saves, and controller-to-mouse input.
 
-The current result is a static compatibility assessment and device inventory.
+The current result includes a static compatibility assessment, device inventory,
+and the successful handheld CPU probe documented below.
 No game launch, graphics test, performance measurement, or playable build has
 been completed on the handheld.
 
@@ -159,6 +160,28 @@ Under QEMU AArch64 with the cross-toolchain ARM libraries, Box64 successfully:
 
 The generated `school-tycoon-runtime-probe.tar.gz` package includes Box64,
 its MIT license, the x86 probe, a readme, and `tools/test-box64.sh`. It is a CPU
-diagnostic, not a PortMaster game launcher. The next external prerequisite is
-executing it on the actual handheld and inspecting its log. Windows WoW64,
+diagnostic, not a PortMaster game launcher. At this stage, target execution was
+pending; the subsequent user result is recorded below. Windows WoW64,
 display integration, Direct3D 8, audio, input, and performance remain outstanding.
+
+## Handheld CPU diagnostic result and Windows test
+
+The user's device log now confirms the Box64 version command and execution probe
+passed, ending with `CPU diagnostic completed successfully.` Box64 identified
+four Cortex-A53 cores, a 4,096-byte page size, and a 39-bit address space. The
+static-binary compatibility warning did not prevent this specific probe from
+passing. This result does not exercise libc wrappers, 32-bit Windows code,
+graphics, or game execution.
+
+`tools/prepare-wine.sh` downloads the checksum-pinned Wine build above beside
+the existing CPU diagnostic. `tools/test-wine.sh` creates an isolated prefix
+and tests the shipped x86_64 and i386 Windows command-shell executables. It
+checks both exit status and exact stdout markers, records individual logs,
+disables automatic Mono/Gecko installation, and uses timeouts. It stops only
+Wine services associated with its own prefix. It deliberately tests without
+a display connection; a pass cannot establish rendering support.
+
+Shell syntax was checked in the cloud. Archive checksums and the referenced
+Windows executables were verified locally. Actual preparation and Windows
+execution on the target are still pending; they cannot be claimed as tested
+from the earlier CPU probe. The next requested target artifact is `logs/wine.txt`.
