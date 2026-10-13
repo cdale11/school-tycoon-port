@@ -325,3 +325,40 @@ Actual target graphics execution is pending. `tools/test-graphics.sh` records
 the native probe's status and the installed Weston image's checksum and relevant
 file listing. It creates no visible window and does not launch the Weston
 wrapper. Its result cannot establish GLX, Direct3D 8, or game readiness.
+
+## Target native graphics result and isolated window test
+
+The user's native graphics log passes with exit status zero and exact pixel
+RGBA 64/128/191/255, GL error zero. It reports ARM EGL 1.4, Mali-G31,
+OpenGL ES 3.2, and GLSL ES 3.20. The installed Weston image's size and SHA-256
+match the inspected official image. This validates native EGL/GLES rendering
+on the actual device; desktop GL/GLX and Direct3D remain unverified.
+
+The next diagnostic is `tools/test-window.sh`. It verifies and extracts the
+existing image into the diagnostic's runtime directory, starts a scoped
+headless/pixman Weston compositor, and waits up to 30 seconds for its X socket.
+It refuses an existing X0 socket or lock, provides private Wayland runtime and
+module paths, and disables Wine's Wayland driver so the probe tests X11.
+It does not execute the upstream wrapper or perform that wrapper's global
+process kills, device-node creation, or environment dump. Only the compositor
+PID it starts and services in the diagnostic's own Wine prefix are stopped.
+
+`tools/windows-window-probe.c` is compiled as a 32-bit Windows GUI executable
+with imports restricted to KERNEL32, USER32, and GDI32. It registers a window
+class, creates and shows a window on the headless desktop, handles WM_PAINT,
+fills the client area with a known color, and reads back that GDI pixel. Only a
+matching pixel writes `ST-WINDOW-PASS`; failed APIs or readback produce a failure
+marker and nonzero exit. The runner removes only the previous generated result
+in its own logs directory and requires this run's marker plus exit zero.
+
+Both 32-bit and 64-bit builds compiled with warnings treated as errors and no
+C runtime linkage. A 64-bit build of the same source ran under native Wine 10.0
+with Xvfb in the cloud, produced the marker, and exited zero. The ARM64 Weston
+version command under QEMU was blocked by an absent cloud ARM libevdev; the
+target's system library availability has not been inferred from that result.
+Shell syntax and the pinned runtime's executable/module paths were checked.
+The actual 32-bit probe and target compositor startup remain pending.
+
+This is a headless Windows/X11/GDI test, not a physical-screen preview or a
+Direct3D test. The next target artifacts are `logs/window.txt` and
+`logs/window-weston.txt`.

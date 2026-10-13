@@ -121,6 +121,37 @@ The probe's source is [native-egl-probe.c](tools/native-egl-probe.c); its render
 logic passed on the cloud's Mesa software renderer. Actual Mali-driver validation
 is pending.
 
+The handheld native probe passed: ARM EGL 1.4, Mali-G31 OpenGL ES 3.2, exact
+RGBA 64/128/191/255 readback, and no GL error. The installed Weston image also
+matches the inspected official runtime. Wine graphics remain untested.
+
+## Test a Windows window
+
+Extract the latest scripts archive into `/userdata/roms/ports/`, then run:
+
+```sh
+cd /userdata/roms/ports/school-tycoon-runtime-probe
+sh test-window.sh
+```
+
+Share `logs/window.txt` and `logs/window-weston.txt`. This extracts the already
+installed, checksum-verified Weston runtime locally (approximately 133 MiB),
+starts a private headless desktop with Xwayland, and runs a 32-bit Windows probe
+in the verified interpreter mode. The probe creates and paints a window, reads
+back its GDI pixel color, writes a marker file, and must exit zero to pass.
+Allow several minutes for Wine startup; the Windows command has a 240-second
+timeout. No physical window appears on the handheld screen in this test.
+
+The launcher refuses to take over an existing X0 socket/lock and stops only its
+own compositor PID and test-prefix Wine services. It does not invoke the
+upstream Weston wrapper, create fake DRM devices, or change firmware. It does
+not test Direct3D 8, GLX rendering, original-game startup, or gameplay speed.
+
+Source: [test-window.sh](tools/test-window.sh) and
+[windows-window-probe.c](tools/windows-window-probe.c). A 64-bit build of the
+same probe passed under Wine 10.0 and Xvfb in the cloud. The shipped 32-bit
+build and the ARM64 compositor integration still require target validation.
+
 ## Findings and tools
 
 - [Executable and CatCore assessment](docs/executable-assessment.md)
