@@ -2,7 +2,7 @@
 # Headless Windows CPU/runtime diagnostic. Does not launch School Tycoon.
 set -eu
 runtime_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-wine_dir="$runtime_root/runtime/wine-11.19-amd64-wow64"
+wine_dir="$runtime_root/runtime/wine-10.0-amd64-wow64"
 if [ "$(uname -m)" != aarch64 ]; then
     printf '%s\n' 'Run this diagnostic on the ARM64 handheld.' >&2
     exit 1
@@ -18,8 +18,8 @@ test -f "$runtime_root/runtime/x86_64/libgcc_s.so.1" || {
 }
 mkdir -p "$runtime_root/logs"
 exec > "$runtime_root/logs/wine.txt" 2>&1
-export WINEPREFIX="$runtime_root/prefix-wine-11.19"
-export WINEARCH=wow64
+export WINEPREFIX="$runtime_root/prefix-wine-10.0"
+export WINEARCH=win64
 export WINEDLLOVERRIDES='winemenubuilder.exe,mscoree,mshtml='
 export WINEDEBUG='err+all,warn+all'
 export BOX64_LOG=1
@@ -39,17 +39,20 @@ wine_failures=0
 for wine_bits in 64 32; do
     if [ "$wine_bits" = 64 ]; then wine_arch=x86_64-windows; else wine_arch=i386-windows; fi
     wine_step_log="$runtime_root/logs/wine-$wine_bits.txt"
+    wine_step_stdout="$runtime_root/logs/wine-$wine_bits.stdout.txt"
     printf '\n=== Windows %s-bit command execution ===\n' "$wine_bits"
-    if timeout 180s "$runtime_root/box64" "$wine_dir/bin/wine" \
+    if BOX64_LOG=0 timeout 180s "$runtime_root/box64" "$wine_dir/bin/wine" \
         "$wine_dir/lib/wine/$wine_arch/cmd.exe" /d /c "echo ST-WINE$wine_bits-PASS" \
-        > "$wine_step_log" 2>&1; then
+        > "$wine_step_stdout" 2> "$wine_step_log"; then
         wine_step_status=0
     else
         wine_step_status=$?
     fi
     cat "$wine_step_log"
+    printf '%s\n' '=== Command stdout ==='
+    cat "$wine_step_stdout"
     printf 'Command exit status: %s\n' "$wine_step_status"
-    if [ "$wine_step_status" = 0 ] && tr -d '\r' < "$wine_step_log" | grep -qx "ST-WINE$wine_bits-PASS"; then
+    if [ "$wine_step_status" = 0 ] && tr -d '\r' < "$wine_step_stdout" | grep -qx "ST-WINE$wine_bits-PASS"; then
         printf 'Windows %s-bit execution: PASS\n' "$wine_bits"
     else
         printf 'Windows %s-bit execution: FAIL\n' "$wine_bits"

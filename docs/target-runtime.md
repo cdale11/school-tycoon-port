@@ -207,3 +207,45 @@ and `_Unwind_Backtrace`. This validates loading under emulation, not exception
 unwinding or Windows execution on the device. Extract the updated scripts archive
 over the diagnostic folder and rerun `test-wine.sh`; retain the installed Wine
 tree and prefix. A target retry is pending.
+
+## Second Windows attempt: Wine 11.19 allocation assertion
+
+The user's subsequent logs confirm the x86_64 libgcc now loads and Wine prints
+its version. Both command-shell attempts then abort at `virtual.c:278`, inside
+`anon_mmap_alloc`, on `!(size & host_page_mask)`. Neither expected marker was
+printed; Windows execution remains unverified.
+
+Inspection of upstream Wine 11.19 `dlls/ntdll/unix/virtual.c` shows that
+`virtual_init` sizes its page-protection directory from the detected host address
+limit and passes that size directly to the page-alignment-asserting allocator.
+On smaller address spaces that table can be smaller than a 4 KiB page. The device
+reports a 39-bit address space, and the abort dump includes a 64-byte argument.
+This strongly indicates an incompatibility in this runtime's initialization,
+although the exact caller and limit computation have not been traced on target.
+Do not infer a game defect or disable the allocator assertion to bypass it.
+
+Stable Wine 10.0 uses `alloc_virtual_heap` for the combined initialization tables
+and lacks that assertion in `anon_mmap_alloc`. The diagnostic has therefore been
+updated to the unmodified `wine-10.0-amd64-wow64` build, using a new
+`prefix-wine-10.0` and leaving Wine 11.19 and its prefix untouched. It uses
+`WINEARCH=win64`, with the build's new WoW64 support supplying 32-bit Windows
+execution. This is a source-informed compatibility workaround, not a verified fix.
+
+Archive SHA-256, checked against the publisher's release manifest:
+`aeebbbf239e548f0136f1cd72a2e109dd9a572a8f703da3c09fa40d74d5c255f`.
+Archive size: 65,074,156 bytes; extracted size approximately 645 MiB. The archive
+and required Windows command-shell paths were checked in the cloud. Device
+execution and game compatibility remain pending.
+
+The Wine 10.0 x86_64 command shell was executed natively on the cloud machine:
+it exited zero and printed the exact `ST-WINE64-PASS` marker. This verifies the
+build's 64-bit headless command path, not Box64 execution or its 32-bit path on
+the handheld. The diagnostic now captures stdout and stderr separately and
+disables informational Box64 logging during each command, so asynchronous
+warnings cannot merge into the success marker and cause a false failure.
+
+Source references:
+
+- https://github.com/wine-mirror/wine/blob/wine-11.19/dlls/ntdll/unix/virtual.c
+- https://github.com/wine-mirror/wine/blob/wine-10.0/dlls/ntdll/unix/virtual.c
+- https://github.com/Kron4ek/Wine-Builds/releases/tag/10.0

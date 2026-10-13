@@ -3,9 +3,9 @@
 # Does not change firmware, system packages, or game files.
 set -eu
 runtime_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-wine_name=wine-11.19-amd64-wow64
-wine_hash=a1fe858b45d12c9b16b91c7601d9b934f68430f7b6b95e240212ab6e2a198d8a
-wine_url="https://github.com/Kron4ek/Wine-Builds/releases/download/11.19/$wine_name.tar.xz"
+wine_name=wine-10.0-amd64-wow64
+wine_hash=aeebbbf239e548f0136f1cd72a2e109dd9a572a8f703da3c09fa40d74d5c255f
+wine_url="https://github.com/Kron4ek/Wine-Builds/releases/download/10.0/$wine_name.tar.xz"
 if [ "$(uname -m)" != aarch64 ]; then
     printf '%s\n' 'Run this installer on the ARM64 handheld.' >&2
     exit 1
@@ -25,7 +25,7 @@ if [ "$available_kb" -lt 2097152 ]; then
 fi
 wine_stage=$(mktemp -d "$runtime_root/runtime/.wine-stage.XXXXXX")
 trap 'rm -rf "$wine_stage"' EXIT HUP INT TERM
-printf '%s\n' 'Downloading portable Wine (approximately 95 MiB)...'
+printf '%s\n' 'Downloading portable Wine 10.0...'
 curl --fail --location --proto '=https' --tlsv1.2 --output "$wine_stage/$wine_name.tar.xz" "$wine_url"
 printf '%s  %s\n' "$wine_hash" "$wine_stage/$wine_name.tar.xz" | sha256sum -c -
 tar -xJf "$wine_stage/$wine_name.tar.xz" --no-same-owner -C "$wine_stage"

@@ -50,19 +50,23 @@ sh prepare-wine.sh
 sh test-wine.sh
 ```
 
-The preparation script downloads the pinned Wine 11.19 AMD64 WoW64 build from
+The preparation script downloads the pinned stable Wine 10.0 AMD64 WoW64 build from
 Kron4ek/Wine-Builds and verifies its publisher's SHA-256 before extraction. It
 requires Internet access, curl, SHA-256 support, XZ-capable tar, and at least
 2 GiB free. It writes only beneath the diagnostic directory and leaves an
 existing Wine directory untouched. The upstream download is approximately
-95 MiB and extracts to approximately 807 MiB.
+62 MiB and extracts to approximately 645 MiB.
 
 The scripts archive also includes x86_64 `libgcc_s.so.1` from Debian
 `libgcc-s1` 14.2.0-19, with copyright and license notices. Box64 needs this
 emulated library to load Wine's `ntdll.so`; an ARM system copy does not replace
 it. The diagnostic adds the local library directory to `BOX64_LD_LIBRARY_PATH`.
-If you already installed Wine, extract the updated scripts archive and rerun
-`sh test-wine.sh`; no new Wine download or prefix removal is needed.
+Wine 11.19 aborted on an internal memory-allocation assertion on the target.
+The updated diagnostic uses Wine 10.0, whose virtual-memory initialization uses
+a different allocation path. Extract the updated scripts archive and run both
+preparation and testing again. Wine 10.0 uses its own directory and prefix;
+the earlier Wine 11.19 installation is retained. This workaround still needs
+verification on the handheld.
 
 The test creates a dedicated Wine prefix and runs 64-bit and 32-bit Windows
 command shells. Each execution must exit successfully and print the exact
