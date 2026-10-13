@@ -1,35 +1,29 @@
-School Tycoon runtime update
+School Tycoon runtime update — experimental, not a verified playable port
 
-Exit the game before installing. Extract into /userdata/roms/ports/ and replace
-only the included files. Launch School Tycoon normally afterwards.
+Exit the old session. Extract into /userdata/roms/ports/ and replace included
+files. Launch School Tycoon normally. Do not delete your game files or prefix.
 
-This update fixes the repeated Wine download caused by a broken runtime link to
-the old probe directory. Verified Wine downloads are retained under
-school-tycoon/runtime/downloads, including when extraction fails. Installed
-Wine is reused after its required files have been checked.
+The installer handles stale runtime links and retains verified Wine downloads.
+Existing installed Wine is reused. Actual game assets and saves are excluded
+from this update. Missing-prefix links are preserved under dated backup names.
 
-Real files at the runtime directory path are preserved and rejected with a clear
-error. Dangling runtime links are removed without deleting any target data.
-Dangling Wine-prefix links are backed up as prefix-wine-10.0.missing-target.TIME.
-Actual game assets, settings, saves and valid prefixes are not modified.
+The prefix helper restores missing builtin modules for both Windows architectures
+from the installed Wine runtime, preserving existing nonempty modules and files.
+For an existing prefix with system.reg and user.reg, it checks 32-bit Windows
+execution without repeating wineboot -u/Active Setup, which aborted in advpack.
+The command must print its exact marker and exit zero before the game can start.
+Existing-prefix verification allows up to two minutes, plus service cleanup.
+A genuinely new prefix still allows up to five minutes for initial setup first.
 
-The latest EGL graphics helper is also included. It remains unverified on Mali.
-The supplied repeated-download log failed before launching Wine or the game.
+Progress/failure logs:
+  logs/prefix-setup.txt
+  logs/prefix-32.txt
+  logs/prefix-32.stdout.txt
+On command failure, source/prefix core-module hashes are saved in:
+  logs/prefix-modules.txt
+Verified prefixes skip repeated repair. A failed verification leaves the prefix
+intact and stops before launching the game. No separate test commands are needed.
 
-The launcher now repairs interrupted prefix setup before starting the graphics
-bridge. It restores missing WoW64 modules from the installed Wine runtime,
-preserves existing DLLs and saves, and runs Wine's 64-bit prefix updater in the private X11 session with its native
-libraries, before enabling Crusty. Progress/errors are in logs/prefix-setup.txt. A failed repair
-is retried on the next launch; do not delete the prefix.
-
-The newest repair restores missing builtin DLLs/apps/drivers for both Windows
-architectures from the installed Wine runtime, before and after its update.
-Nonempty existing modules are preserved. It then executes a 32-bit Windows
-command and requires both its exact success marker and exit zero before starting
-the game. An updater exit-zero alone is no longer treated as readiness.
-
-Repair stages: up to five minutes for Wine update, then up to two minutes for
-32-bit verification, plus service cleanup. Both stages are logged in prefix-setup.txt.
-Additional command output is saved in prefix-32.txt and prefix-32.stdout.txt.
-Previously verified prefixes skip repeated repair. This does not validate game
-rendering or performance; those remain unresolved until a successful device run.
+The EGL helper loads native EGL/SDL directly and primes EGL before Wine address
+mappings. This has not yet established successful game rendering on the handheld.
+CPU verification does not prove sound, COM services, shaders, saves or performance.

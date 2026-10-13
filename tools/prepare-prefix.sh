@@ -8,7 +8,7 @@ export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 export BOX64_PATH="$prefix_root:$prefix_wine/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$prefix_root/runtime/x86_64:$prefix_wine/lib/wine/x86_64-unix"
 export WINEDLLOVERRIDES='winewayland.drv=;winemenubuilder.exe,mscoree,mshtml='
-export WINEDEBUG=err+all
+export WINEDEBUG=err+all,warn+module,trace+loaddll
 unset LD_PRELOAD ST_EGL_TARGET WAYLAND_DISPLAY SDL_VIDEODRIVER
 mkdir -p "$prefix_root/logs" "$prefix_root/runtime"
 prefix_pending="$prefix_root/runtime/prefix-repair-pending"
@@ -64,21 +64,33 @@ trap cleanup_prefix EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 restore_prefix_modules
-if timeout -s TERM -k 5s 300s "$prefix_root/box64" "$prefix_wine/bin/wine" \
-    "$prefix_wine/lib/wine/x86_64-windows/wineboot.exe" -u; then
-    printf '%s\n' 'Wine prefix update exited successfully; verifying the runtime next.'
+# Existing registries already came through wineboot. Re-running full update
+# invokes failing Active Setup registrations (advpack) before CPU validation.
+# Only a genuinely new prefix needs the bootstrap here.
+if [ ! -s "$WINEPREFIX/system.reg" ] || [ ! -s "$WINEPREFIX/user.reg" ]; then
+    if timeout -s TERM -k 5s 300s "$prefix_root/box64" "$prefix_wine/bin/wine" \
+        "$prefix_wine/lib/wine/x86_64-windows/wineboot.exe" -u; then
+        printf '%s\n' 'Initial Wine prefix update exited successfully; verifying the runtime next.'
+    else
+        prefix_status=$?
+        printf 'Initial Wine prefix update failed: %s. Existing prefix data is preserved.\n' "$prefix_status"
+        exit "$prefix_status"
+    fi
 else
-    prefix_status=$?
-    printf 'Wine prefix update failed: %s. Existing prefix data is preserved.\n' "$prefix_status"
-    exit "$prefix_status"
+    printf '%s\n' 'Existing Wine registries found; checking restored runtime without repeating full update.'
 fi
 # Stop background setup before filling any modules left missing by its copy pass.
 cleanup_prefix
 restore_prefix_modules
 printf '%s\n' 'Checking 32-bit Windows execution before game startup (up to 120 seconds).'
-if timeout -s TERM -k 5s 120s "$prefix_root/box64" "$prefix_wine/bin/wine" \
+# Reuse the headless 32-bit CPU path that passed earlier on the handheld.
+# GDI/GL service-window failures must not be confused with CPU-loader readiness.
+if (
+    unset DISPLAY
+    timeout -s TERM -k 5s 120s "$prefix_root/box64" "$prefix_wine/bin/wine" \
     "$WINEPREFIX/drive_c/windows/syswow64/cmd.exe" /d /c 'echo ST-PREFIX32-PASS' \
-    > "$prefix_root/logs/prefix-32.stdout.txt" 2> "$prefix_root/logs/prefix-32.txt"; then
+    > "$prefix_root/logs/prefix-32.stdout.txt" 2> "$prefix_root/logs/prefix-32.txt"
+); then
     prefix_status=0
 else
     prefix_status=$?
@@ -86,6 +98,21 @@ fi
 cat "$prefix_root/logs/prefix-32.txt" "$prefix_root/logs/prefix-32.stdout.txt"
 if [ "$prefix_status" != 0 ] || ! tr -d '\r' < "$prefix_root/logs/prefix-32.stdout.txt" | grep -qx ST-PREFIX32-PASS; then
     printf '32-bit Wine verification failed: %s. The game was not launched.\n' "$prefix_status"
+    # Capture runtime/prefix consistency for the loader errors above. No env dump.
+    printf '%s\n' '=== Core module SHA256 inventory ===' > "$prefix_root/logs/prefix-modules.txt"
+    for prefix_arch in x86_64-windows i386-windows; do
+        prefix_system=system32
+        if [ "$prefix_arch" = i386-windows ]; then prefix_system=syswow64; fi
+        for prefix_module in ntdll.dll kernel32.dll kernelbase.dll advpack.dll advapi32.dll ucrtbase.dll ole32.dll setupapi.dll version.dll win32u.dll winex11.drv; do
+            for prefix_file in "$prefix_wine/lib/wine/$prefix_arch/$prefix_module" "$WINEPREFIX/drive_c/windows/$prefix_system/$prefix_module"; do
+                if [ -f "$prefix_file" ]; then
+                    sha256sum "$prefix_file" >> "$prefix_root/logs/prefix-modules.txt"
+                else
+                    printf 'Missing: %s\n' "$prefix_file" >> "$prefix_root/logs/prefix-modules.txt"
+                fi
+            done
+        done
+    done
     exit 1
 fi
 : > "$prefix_verified"

@@ -583,3 +583,32 @@ Bounds remain 300 seconds for update and 120 seconds for the 32-bit execution
 check, with bounded service cleanup. Game startup begins only after both stages
 succeed. Hardware graphics, original-game behavior and performance are still
 unverified; this is another bootstrap repair, not a completed playable port.
+
+## advpack registration abort during repeated prefix update
+
+The latest update again timed out (124), this time with DelayLoadFailureHook
+reporting advpack.dll.RegInstallA and invoking the debugger. Both architectures
+of the inspected, pinned Wine 10.0 advpack.dll export RegInstallA, so the message
+alone does not establish an API absent from Wine. Missing/mismatched dependent
+modules or prefix initialization state still need diagnosis. The game and
+32-bit command gate were not reached in that run.
+
+An existing prefix with nonempty system.reg and user.reg now proceeds from
+missing-module restoration to the headless 32-bit command gate, avoiding the
+repeated full update/Active Setup registration path. This matches the Windows
+CPU command path previously passed on the handheld. New prefixes still receive
+initial wineboot setup in private X11. Passing the command gate allows game
+startup; it does not validate COM/audio/graphics or game performance.
+
+Warnings and library-load tracing are enabled only for prefix validation, without
+process/server/environment tracing. On verification failure, source and prefix
+core-module SHA256s are captured in prefix-modules.txt to distinguish missing or
+inconsistent files rather than guessing another API workaround. Data/registries
+are preserved. Existing-prefix command verification remains bounded to 120
+seconds plus service cleanup, with no full five-minute update before that check.
+
+The orchestration/recovery integration tests passed existing-registry bootstrap
+bypass, headless command environment, exact success marker/exit gate, preservation,
+retry, and verified-prefix reuse. Actual native cloud WoW64 command execution is
+still not verified (previous attempts segfaulted); the next handheld launch is
+the required validation of this changed route.

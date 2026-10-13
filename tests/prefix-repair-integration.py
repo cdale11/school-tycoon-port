@@ -33,10 +33,12 @@ from pathlib import Path
 root=Path(__file__).resolve().parent
 if sys.argv[1].endswith('wineserver'): sys.exit(0)
 if sys.argv[2].endswith('cmd.exe'):
+ (root/'command-display.txt').write_text(str(os.environ.get('DISPLAY')))
  if (root/'bad32').exists(): sys.exit(53)
  if (root/'no-marker').exists(): sys.exit(0)
  print('ST-PREFIX32-PASS')
  sys.exit(0)
+if (root/'must-not-bootstrap').exists(): sys.exit(97)
 (root/'bootstrap.json').write_text(json.dumps({'args':sys.argv[2:], 'preload':os.environ.get('LD_PRELOAD'), 'display':os.environ.get('DISPLAY'), 'cpu':os.environ.get('BOX64_DYNAREC')}))
 if (root/'fail').exists(): sys.exit(7)
 ''')
@@ -67,9 +69,18 @@ if (root/'fail').exists(): sys.exit(7)
     assert completed.returncode==0,(completed.stdout,completed.stderr)
     assert not (root/'runtime/prefix-repair-pending').exists()
     assert (root/'runtime/prefix-32bit-verified').exists()
+    assert (root/'command-display.txt').read_text()=='None'
     assert (root/'prefix-wine-10.0/drive_c/windows/syswow64/kernel32.dll').read_text()=='32-bit-builtin-kernel32.dll'
     (root/'bootstrap.json').unlink()
     again=run()
     assert again.returncode==0 and not (root/'bootstrap.json').exists()
     assert save.read_text()=='preserve-save'
+    (root/'runtime/prefix-32bit-verified').unlink()
+    (root/'prefix-wine-10.0/system.reg').write_text('existing registry')
+    (root/'prefix-wine-10.0/user.reg').write_text('existing registry')
+    (root/'must-not-bootstrap').touch()
+    existing=run()
+    assert existing.returncode==0,(existing.stdout,existing.stderr)
+    assert not (root/'bootstrap.json').exists()
+    assert (root/'runtime/prefix-32bit-verified').exists()
 print('PASS: missing DLL restoration, existing DLL/save preservation, clean bootstrap, retry after failure, subsequent reuse')
