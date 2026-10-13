@@ -7,7 +7,7 @@ export WINEPREFIX="$prefix_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 export BOX64_PATH="$prefix_root:$prefix_wine/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$prefix_root/runtime/x86_64:$prefix_wine/lib/wine/x86_64-unix"
-export WINEDLLOVERRIDES='winewayland.drv=;winemenubuilder.exe,mscoree,mshtml='
+export WINEDLLOVERRIDES='winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='
 export WINEDEBUG=err+all,warn+module,trace+loaddll
 unset LD_PRELOAD ST_EGL_TARGET WAYLAND_DISPLAY SDL_VIDEODRIVER
 mkdir -p "$prefix_root/logs" "$prefix_root/runtime"

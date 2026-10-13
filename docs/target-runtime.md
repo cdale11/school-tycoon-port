@@ -612,3 +612,31 @@ bypass, headless command environment, exact success marker/exit gate, preservati
 retry, and verified-prefix reuse. Actual native cloud WoW64 command execution is
 still not verified (previous attempts segfaulted); the next handheld launch is
 the required validation of this changed route.
+
+## Fresh-prefix trace: Internet Explorer registration access violation
+
+The fresh installation downloaded and verified the pinned Wine archive, then
+initial setup timed out again. The trace loaded syswow64/kernel32.dll and the
+other WoW64 core modules successfully; the previous missing-kernel32 symptom
+was no longer present in that phase. The fatal trace was specifically the
+system32/iexplore.exe process loading advpack.dll with status c0000005 (access
+violation), followed by the generic delayed-import RegInstallA error and debugger
+attempt. Another process in the same run had already loaded advpack.dll. Both
+pinned advpack architectures export RegInstallA, so this is not evidence that
+Wine 10.0 lacks that API.
+
+The bootstrap and session now include iexplore.exe= in WINEDLLOVERRIDES, alongside
+the existing disabled menu/Mono/Gecko helpers. This suppresses the bundled browser
+registration executable without altering DLL code, implementing fake exports,
+or disabling the 32-bit command readiness gate. It does not establish general
+COM or browser support, game rendering, or a playable port.
+
+Real native-host Wine testing confirmed the executable is excluded: an explicit
+iexplore registration launch exited 53, and the updater's trace showed the helper
+rejected with c0000135. The same Wine prefix update then completed with exit zero
+without the RegInstallA abort. Its subsequent native 32-bit command still crashed
+139, matching the cloud's previously unresolved native-WoW64 limitation; this is
+not represented as a full prefix/handheld pass. Integration checks confirmed the
+override reaches bootstrap and preservation/verification behavior remains intact.
+Actual Box64/handheld verification is still required. Keep the newly created
+prefix and installed runtime rather than repeating downloads/resetting again.

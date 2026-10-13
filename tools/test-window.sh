@@ -107,7 +107,7 @@ export WINEPREFIX="$window_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
-export WINEDLLOVERRIDES='winewayland.drv=;winemenubuilder.exe,mscoree,mshtml='
+export WINEDLLOVERRIDES='winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='
 export WINEDEBUG='err+all'
 trap cleanup_window EXIT
 trap 'exit 130' INT

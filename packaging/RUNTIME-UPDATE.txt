@@ -27,3 +27,11 @@ intact and stops before launching the game. No separate test commands are needed
 The EGL helper loads native EGL/SDL directly and primes EGL before Wine address
 mappings. This has not yet established successful game rendering on the handheld.
 CPU verification does not prove sound, COM services, shaders, saves or performance.
+
+This revision disables Wine's bundled Internet Explorer executable during setup
+and game-session service startup. The fresh-prefix trace showed iexplore.exe
+aborting while loading advpack.dll with access-violation status c0000005.
+The RegInstallA export exists; no DLL stub or fake implementation is installed.
+Wine's normal override mechanism suppresses the browser registration helper.
+Both missing-module restoration and the 32-bit execution gate remain enabled.
+Keep your currently repaired prefix; another reset is not required for this change.

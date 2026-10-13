@@ -39,7 +39,7 @@ if sys.argv[2].endswith('cmd.exe'):
  print('ST-PREFIX32-PASS')
  sys.exit(0)
 if (root/'must-not-bootstrap').exists(): sys.exit(97)
-(root/'bootstrap.json').write_text(json.dumps({'args':sys.argv[2:], 'preload':os.environ.get('LD_PRELOAD'), 'display':os.environ.get('DISPLAY'), 'cpu':os.environ.get('BOX64_DYNAREC')}))
+(root/'bootstrap.json').write_text(json.dumps({'args':sys.argv[2:], 'preload':os.environ.get('LD_PRELOAD'), 'display':os.environ.get('DISPLAY'), 'cpu':os.environ.get('BOX64_DYNAREC'),'overrides':os.environ.get('WINEDLLOVERRIDES')}))
 if (root/'fail').exists(): sys.exit(7)
 ''')
     wrapper.chmod(0o755)
@@ -54,7 +54,7 @@ if (root/'fail').exists(): sys.exit(7)
     assert (system32/'wow64cpu.dll').read_text()=='keep-existing-dll'
     assert save.read_text()=='preserve-save'
     data=json.loads((root/'bootstrap.json').read_text())
-    assert data=={'args':[str(builtin/'wineboot.exe'),'-u'],'preload':None,'display':':123','cpu':'0'},data
+    assert data=={'args':[str(builtin/'wineboot.exe'),'-u'],'preload':None,'display':':123','cpu':'0','overrides':'winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='},data
     (root/'fail').unlink()
     (root/'bad32').touch()
     rejected=run()
