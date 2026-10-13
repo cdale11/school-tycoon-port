@@ -57,6 +57,13 @@ requires Internet access, curl, SHA-256 support, XZ-capable tar, and at least
 existing Wine directory untouched. The upstream download is approximately
 95 MiB and extracts to approximately 807 MiB.
 
+The scripts archive also includes x86_64 `libgcc_s.so.1` from Debian
+`libgcc-s1` 14.2.0-19, with copyright and license notices. Box64 needs this
+emulated library to load Wine's `ntdll.so`; an ARM system copy does not replace
+it. The diagnostic adds the local library directory to `BOX64_LD_LIBRARY_PATH`.
+If you already installed Wine, extract the updated scripts archive and rerun
+`sh test-wine.sh`; no new Wine download or prefix removal is needed.
+
 The test creates a dedicated Wine prefix and runs 64-bit and 32-bit Windows
 command shells. Each execution must exit successfully and print the exact
 expected marker. It uses no display, game files, or Winetricks installation.

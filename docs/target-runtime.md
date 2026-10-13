@@ -185,3 +185,25 @@ Shell syntax was checked in the cloud. Archive checksums and the referenced
 Windows executables were verified locally. Actual preparation and Windows
 execution on the target are still pending; they cannot be claimed as tested
 from the earlier CPU probe. The next requested target artifact is `logs/wine.txt`.
+
+## First Windows attempt: missing x86_64 libgcc
+
+The user's Wine log stops during `wine --version`, before either Windows command
+test executes. Box64 loads Wine's x86_64 Unix `ntdll.so` but cannot resolve
+`libgcc_s.so.1`. Its ELF dependency table confirms that library is required.
+This is an incomplete portable-runtime dependency, not evidence of a game bug.
+
+The updated scripts archive includes unmodified x86_64 libgcc from Debian
+`libgcc-s1` 14.2.0-19, obtained using APT's authenticated repository metadata.
+SHA-256: `30c61ab012a4241bed033725a09b61f5fdd3bb7df95ee852d0b096520524c7af`.
+Its highest referenced glibc symbol version is GLIBC_2.35. Copyright, GPLv3,
+GCC Runtime Library Exception, and source-location notices accompany it.
+The diagnostic now includes `runtime/x86_64` in `BOX64_LD_LIBRARY_PATH` and
+reports a missing support library explicitly before starting Wine.
+
+Under QEMU AArch64, the same Box64 binary successfully loaded this emulated
+x86_64 library with immediate symbol resolution and found `_Unwind_RaiseException`
+and `_Unwind_Backtrace`. This validates loading under emulation, not exception
+unwinding or Windows execution on the device. Extract the updated scripts archive
+over the diagnostic folder and rerun `test-wine.sh`; retain the installed Wine
+tree and prefix. A target retry is pending.

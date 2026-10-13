@@ -12,6 +12,10 @@ for runtime_cmd in timeout tr grep; do
 done
 test -x "$runtime_root/box64" || { printf '%s\n' 'Missing Box64 CPU diagnostic package.' >&2; exit 1; }
 test -x "$wine_dir/bin/wine" || { printf '%s\n' 'Run prepare-wine.sh first.' >&2; exit 1; }
+test -f "$runtime_root/runtime/x86_64/libgcc_s.so.1" || {
+    printf '%s\n' 'Missing x86_64 libgcc support library; extract the updated Wine scripts package.' >&2
+    exit 1
+}
 mkdir -p "$runtime_root/logs"
 exec > "$runtime_root/logs/wine.txt" 2>&1
 export WINEPREFIX="$runtime_root/prefix-wine-11.19"
@@ -20,7 +24,7 @@ export WINEDLLOVERRIDES='winemenubuilder.exe,mscoree,mshtml='
 export WINEDEBUG='err+all,warn+all'
 export BOX64_LOG=1
 export BOX64_PATH="$runtime_root:$wine_dir/bin:/bin:/usr/bin"
-export BOX64_LD_LIBRARY_PATH="$wine_dir/lib/wine/x86_64-unix"
+export BOX64_LD_LIBRARY_PATH="$runtime_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 export PATH="$runtime_root:$wine_dir/bin:$PATH"
 unset DISPLAY WAYLAND_DISPLAY
 unset BOX64_NODYNAREC BOX64_DYNAREC BOX64_DYNAREC_BIGBLOCK BOX64_DYNAREC_STRONGMEM
