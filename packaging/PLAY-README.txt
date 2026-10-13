@@ -19,7 +19,7 @@ The launcher reuses the previously installed Wine, Weston and Wine prefix when
 available. Otherwise it downloads checksum-verified Wine 10.0 once (62 MiB) and
 extracts the installed PortMaster Weston runtime. Allow 2 GiB free, or 3 GiB
 when extracting the private archive. First Wine startup may take several minutes. Missing WoW64 DLLs after an
-interrupted setup are repaired before launching the game; see logs/prefix-setup.txt.
+interrupted setup are repaired in a private X11 session before launching the game; see logs/prefix-setup.txt.
 Verified downloads are cached under runtime/downloads. A retry reuses that
 archive; valid installed Wine is not downloaded again. A stale runtime link to
 an old deleted probe directory is removed without deleting target files. A stale

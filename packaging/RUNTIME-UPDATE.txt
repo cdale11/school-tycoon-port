@@ -18,6 +18,6 @@ The supplied repeated-download log failed before launching Wine or the game.
 
 The launcher now repairs interrupted prefix setup before starting the graphics
 bridge. It restores missing WoW64 modules from the installed Wine runtime,
-preserves existing DLLs and saves, and runs Wine's 64-bit prefix updater without
-Crusty or a display. Progress/errors are in logs/prefix-setup.txt. A failed repair
+preserves existing DLLs and saves, and runs Wine's 64-bit prefix updater in the private X11 session with its native
+libraries, before enabling Crusty. Progress/errors are in logs/prefix-setup.txt. A failed repair
 is retried on the next launch; do not delete the prefix.

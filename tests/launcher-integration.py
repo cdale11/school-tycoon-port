@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
     (root/'gamedata/SchoolTycoon.exe').touch()
     weston = root/'runtime/weston-0.2'
     script(weston/'wp_weston', '#!/usr/bin/python3\nimport socket,signal,time\ns=socket.socket(socket.AF_UNIX)\ns.bind('+repr(str(root/'sockets/X0'))+')\nsignal.signal(signal.SIGTERM,lambda *a:exit(0))\nwhile True: time.sleep(1)\n')
+    script(root/'prepare-prefix.sh', '#!/bin/sh\n[ "$DISPLAY" = :0 ] && [ -z "${LD_PRELOAD:-}" ] || exit 98\n')
     script(root/'st-controls', '#!/bin/sh\ntrap \'echo stopped > "'+str(root/'controls-stopped')+'"; exit 1\' TERM\nwhile :; do sleep 0.1; done\n')
     script(root/'box64', '#!/usr/bin/python3\nimport os,sys,json\nfrom pathlib import Path\nr=Path('+repr(tmp)+')\nif sys.argv[1].endswith("wineserver"):\n (r/"wine-stopped").touch()\n sys.exit(0)\n(r/"observed.json").write_text(json.dumps({"cwd":os.getcwd(),"args":sys.argv[2:],"gles":os.environ.get("SDL_VIDEO_GL_DRIVER"),"cpu":os.environ.get("BOX64_DYNAREC"),"target":os.environ.get("ST_EGL_TARGET"),"preload":os.environ.get("LD_PRELOAD")}))\nsys.exit(7)\n')
     mocks = root/'mock-bin'

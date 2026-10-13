@@ -528,3 +528,27 @@ files; expected headless window warnings were present. Native-host Wine bootstra
 success does not validate Box64/handheld setup speed or 32-bit game rendering.
 The runtime-install/Ports-entry integration check also passed after adding the
 new bootstrap stage. No game or save files are present in the update archive.
+
+## Prefix repair timeout / private X11 bootstrap
+
+The handheld prefix update timed out at 300 seconds (status 124). Its log showed
+missing native X11/Wayland libraries and repeated failures to create the internal
+OLE/RpcSs windows. The earlier headless-host updater success did not establish
+that the same repair environment was sufficient on this handheld.
+
+Repair now runs after the session has started Weston/Xwayland and exported its
+native X11 runtime library paths and DISPLAY. It runs before the Crusty/GL4ES
+application environment is enabled; LD_PRELOAD is still cleared in the repair
+subprocess, and Wine's Wayland driver is disabled. The prefix, restored DLLs and
+pending retry marker remain intact; no extra Wine download or prefix reset is
+needed. The same five-minute timeout is retained. This avoids the observed
+absence of a native X11 display/driver during repair, but target completion
+still requires a handheld launch.
+
+The orchestration check passed with a repair stub requiring DISPLAY=:0 and no
+LD_PRELOAD, verifying that the graphical bridge is enabled only afterwards.
+The recovery test passed with DISPLAY retained through the Wine bootstrap while
+preserving existing files/saves and retry behavior.
+The revised updater also completed with real native Wine 10.0/Xvfb in the cloud
+and cleared its pending marker. This validates the updater invocation and X11
+integration on the host, not ARM64 interpreter timing or handheld rendering.

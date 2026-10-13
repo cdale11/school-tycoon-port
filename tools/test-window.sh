@@ -128,6 +128,10 @@ while [ ! -S /tmp/.X11-unix/X0 ]; do
     sleep 0.2
 done
 export DISPLAY=:0 WAYLAND_DISPLAY=school-tycoon-window
+# Repair Wine/RpcSs in the verified private X11 session, before Crusty.
+if [ "$window_mode" = game ]; then
+    sh "$window_root/prepare-prefix.sh"
+fi
 window_app_libpath="$LD_LIBRARY_PATH"
 window_app_preload=
 if [ "$window_mode" != gdi ]; then

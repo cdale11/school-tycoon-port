@@ -43,7 +43,7 @@ if (root/'fail').exists(): sys.exit(7)
     assert (system32/'wow64cpu.dll').read_text()=='keep-existing-dll'
     assert save.read_text()=='preserve-save'
     data=json.loads((root/'bootstrap.json').read_text())
-    assert data=={'args':[str(builtin/'wineboot.exe'),'-u'],'preload':None,'display':None,'cpu':'0'},data
+    assert data=={'args':[str(builtin/'wineboot.exe'),'-u'],'preload':None,'display':':123','cpu':'0'},data
     (root/'fail').unlink()
     completed=run()
     assert completed.returncode==0,(completed.stdout,completed.stderr)
