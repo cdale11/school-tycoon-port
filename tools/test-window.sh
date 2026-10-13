@@ -8,12 +8,13 @@ weston_image=/userdata/system/.local/share/PortMaster/libs/weston_pkg_0.2.squash
 weston_hash=0bccaeebc11296bb1fe4278c9677cb82965c5a04bcd63745fa09d78228bc1a93
 window_mode=${1:-gdi}
 case "$window_mode" in
+    game) window_log=game; window_exe=gamedata/SchoolTycoon.exe; window_result=; window_marker= ;;
     gdi) window_log=window; window_exe=windows-window-probe.exe; window_result=window-result.txt; window_marker=ST-WINDOW-PASS ;;
     d3d8|core4es)
         window_log=d3d8; window_exe=windows-d3d8-probe.exe
         if [ "$window_mode" = core4es ]; then window_log=d3d8-core4es; fi
         window_result=d3d8-result.txt; window_marker=ST-D3D8-PASS ;;
-    *) printf '%s\n' 'Usage: sh test-window.sh [gdi|d3d8|core4es]' >&2; exit 2 ;;
+    *) printf '%s\n' 'Usage: sh test-window.sh [gdi|d3d8|core4es|game]' >&2; exit 2 ;;
 esac
 if [ "$(uname -m)" != aarch64 ]; then
     printf '%s\n' 'Run this diagnostic on the ARM64 handheld.' >&2; exit 1
@@ -62,7 +63,7 @@ export XKB_CONFIG_ROOT="$weston_dir/share/xkb"
 export WESTON_LIBEXEC_DIR="$weston_dir/libexec"
 export WESTON_DATA_DIR="$weston_dir/data"
 export WESTON_MODULE_MAP="headless-backend.so=$weston_dir/lib_aarch64/libweston-14/headless-backend.so;kiosk-shell.so=$weston_dir/lib_aarch64/weston/kiosk-shell.so;xwayland.so=$weston_dir/lib_aarch64/libweston-14/xwayland.so;"
-export WESTON_HEADLESS_WIDTH=640 WESTON_HEADLESS_HEIGHT=480
+export WESTON_HEADLESS_WIDTH=800 WESTON_HEADLESS_HEIGHT=600
 export XWAYLAND_LD_LIBRARY_PATH="$weston_dir/lib_aarch64/graphics/mesa_x11_stub:$weston_dir/lib_aarch64"
 export LD_LIBRARY_PATH="$XWAYLAND_LD_LIBRARY_PATH"
 export PATH="$weston_dir/bin:$window_root:$wine_dir/bin:$PATH"
@@ -82,7 +83,12 @@ cat > "$window_root/runtime/window-weston.ini" <<'EOF'
 idle-time=0
 EOF
 weston_pid=
+controls_pid=
+game_pid=
 cleanup_window() {
+    trap - EXIT HUP INT TERM
+    if [ -n "$controls_pid" ]; then kill "$controls_pid" 2>/dev/null || :; wait "$controls_pid" 2>/dev/null || :; fi
+    if [ -n "$game_pid" ]; then kill "$game_pid" 2>/dev/null || :; fi
     if [ -n "$weston_pid" ]; then
         kill "$weston_pid" 2>/dev/null || :
         window_cleanup_start=$(date +%s)
@@ -103,7 +109,9 @@ export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 export WINEDLLOVERRIDES='winewayland.drv=;winemenubuilder.exe,mscoree,mshtml='
 export WINEDEBUG='err+all'
-trap cleanup_window EXIT HUP INT TERM
+trap cleanup_window EXIT
+trap 'exit 130' INT
+trap 'exit 143' HUP TERM
 (
     cd "$weston_dir"
     exec ./wp_weston -c "$window_root/runtime/window-weston.ini" -B headless \
@@ -131,7 +139,53 @@ if [ "$window_mode" != gdi ]; then
     export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
     export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window
     export SDL_VIDEODRIVER=mali
+    # Avoid auto-selected GLES 3.2 and ambiguous library resolution in SDL.
+    # These are native ARM libraries, never x86 copies from Wine.
+    export CRUSTY_GLES=20 SDL_OPENGL_ES_DRIVER=1
+    export SDL_VIDEO_EGL_DRIVER=/usr/lib/libEGL.so.1
+    export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
+    export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
+    export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
     export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'
+fi
+# Full game runs without a diagnostic timeout, from its asset directory.
+if [ "$window_mode" = game ]; then
+    case "${ST_CPU_MODE:-interpreter}" in
+        interpreter) export BOX64_DYNAREC=0 ;;
+        dynarec)
+            export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
+            export BOX64_DYNAREC_FORWARD=0 BOX64_DYNAREC_STRONGMEM=2
+            export BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0 ;;
+        *) printf '%s\n' 'Invalid ST_CPU_MODE'; exit 2 ;;
+    esac
+    printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-interpreter}"
+    printf '%s\n' 'Graphics configuration is experimental; this is not a verified playable port.'
+    export SDL_GAMECONTROLLERCONFIG_FILE="${SDL_GAMECONTROLLERCONFIG_FILE:-/userdata/system/.local/share/PortMaster/knulli/gamecontrollerdb.txt}"
+    LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &
+    controls_pid=$!
+    cd "$window_root/gamedata"
+    env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
+        "$window_root/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe \
+        > "$window_root/logs/game-wine.stdout.txt" 2> "$window_root/logs/game-wine.txt" &
+    game_pid=$!
+    while kill -0 "$game_pid" 2>/dev/null; do
+        if ! kill -0 "$controls_pid" 2>/dev/null; then
+            if wait "$controls_pid"; then
+                controls_pid=
+                printf '%s\n' 'Select + Start requested exit.'
+                exit 0
+            else
+                controls_pid=
+                printf '%s\n' 'Controller helper unavailable; see controls.txt. USB mouse/keyboard remain usable.'
+                break
+            fi
+        fi
+        sleep 1
+    done
+    if wait "$game_pid"; then game_status=0; else game_status=$?; fi
+    game_pid=
+    printf 'Game process exited: %s\n' "$game_status"
+    exit "$game_status"
 fi
 # The probe's result is generated only in this run's dedicated log directory.
 cd "$window_root/logs"

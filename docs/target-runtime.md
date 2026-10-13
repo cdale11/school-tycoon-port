@@ -416,3 +416,33 @@ The runner still requires the newly generated marker and zero exit; the
 `logs/d3d8.txt` and `logs/d3d8-weston.txt`, plus the corresponding Core4ES logs
 if that alternative executes. Game startup, shader behavior, audio, input, and
 performance remain outstanding even if this simple Direct3D probe passes.
+
+## Full-game launcher and latest D3D8 results (2026-10-13)
+
+The uploaded GL4ES run exited 1: SDL reported "Can't load EGL/GL library on
+window creation", the Mali driver reported a tracking-handle mapping failure,
+and Wine failed Direct3DCreate8. The Core4ES run also exited 1: Wine could not
+resolve glAccum and disabled OpenGL. No Direct3D device passed on the handheld.
+
+The full-game launcher selects GL4ES, forces Crusty's GLES 2.0 request (the
+installed binary defaults to GLES 3.2), and explicitly sets native EGL/GLES
+library paths for SDL and GL4ES. This is a candidate workaround, not a confirmed
+fix for the driver mapping failure. No Core4ES fallback is offered because that
+run established a missing API. The actual game launches from gamedata without
+a diagnostic timeout or a probe gate. Nothing patches game settings or DRM.
+
+Controller support is a native SDL2/XTest helper scoped to this session's X11
+display. It handles reconnects and releases held inputs on exit. Select+Start
+returns to the launcher, whose cleanup terminates only its owned controller,
+compositor and Wine prefix. The helper's host build passed a real SDL virtual
+controller/Xvfb integration check: pointer movement, both clicks, release, exit.
+The session shell passed a separate stand-in runtime integration check for asset
+cwd, arguments, native GLES environment, game status propagation and cleanup.
+ARM64 compilation passed with warnings treated as errors (glibc <=2.34).
+These checks do not validate handheld gameplay or physical button mappings.
+
+A fresh cloud attempt with the original executable, Wine 10.0, and Xvfb exited
+139 after entering experimental WoW64 mode. There is still no successful game
+startup baseline. Interpreter mode remains the default; conservative dynarec
+is opt-in and unverified. Original game assets are included only in a private
+workspace archive for their uploader, never in the GitHub package.
