@@ -35,3 +35,12 @@ The RegInstallA export exists; no DLL stub or fake implementation is installed.
 Wine's normal override mechanism suppresses the browser registration helper.
 Both missing-module restoration and the 32-bit execution gate remain enabled.
 Keep your currently repaired prefix; another reset is not required for this change.
+
+The graphics update now explicitly gives Box64 GL4ES's desktop libGL while SDL
+uses native GLES. It also retains Crusty's framebuffer configuration storage
+after Wine frees the temporary GLX enumeration array. The original bundled
+bridge otherwise returns a dangling handle, causing pixel-format rejection.
+The new native libst-glx-config.so helper must accompany run-game.sh.
+These fixes pass native lifetime checks and the ARM64 VM Direct3D 8 rendering
+probe. The VM uses software GLES and SDL X11; Mali gameplay is still unverified.
+No reset, Wine download, or game-data deletion is required for this update.

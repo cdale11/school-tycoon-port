@@ -5,6 +5,10 @@ An experimental launcher for the original School Tycoon (2004) on KNULLI Scarab.
 Direct3D 8 initialization. The current update loads EGL/SDL directly and primes
 native EGL before Wine creates its Windows address mappings. This targeted
 workaround has passed cloud EGL checks but has not been verified on Mali.
+The latest graphics fix selects GL4ES explicitly for Wine and preserves the
+bundled bridge's framebuffer configuration handles after enumeration arrays
+are freed. Direct3D 8 clear/readback/present now passes through GL4ES in the
+ARM64 VM; this remains a software GLES test, not a handheld gameplay pass.
 
 ## Update an existing installation
 
@@ -50,6 +54,8 @@ See [installation and controls](packaging/PLAY-README.txt) for details.
 - Cloud: controller movement/clicks/release/exit using real SDL virtual input and
   X11; launcher command, working directory, exit status and owned-process cleanup
   using stand-in runtimes; ARM64 helper build (glibc 2.34 maximum requirement).
+  Full-system ARM64 VM: original intro, menus and school scene using desktop
+  software Mesa; GL4ES/GLES Direct3D 8 rendering probe with the new helper.
 - **Failed on handheld:** GL4ES could not create its SDL/Mali window; Core4ES
   lacked `glAccum`, causing Wine to disable OpenGL. Both failed Direct3DCreate8.
 - **Unverified:** early EGL initialization on Mali, game rendering, sound,

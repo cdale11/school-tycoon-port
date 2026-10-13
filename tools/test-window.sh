@@ -139,7 +139,9 @@ if [ "$window_mode" != gdi ]; then
     if [ "$window_mode" = core4es ]; then window_gl=core4es_glxpass; fi
     window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
     test -f "$window_root/runtime/graphics/libst-egl-prime.so"
-    window_app_preload="$window_root/runtime/graphics/libst-egl-prime.so:$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+    test -f "$window_root/runtime/graphics/libst-glx-config.so"
+    export ST_CRUSTY_LIBRARY="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+    window_app_preload="$window_root/runtime/graphics/libst-glx-config.so:$window_root/runtime/graphics/libst-egl-prime.so:$ST_CRUSTY_LIBRARY"
     if [ "$window_mode" = game ]; then
         export ST_EGL_TARGET=SchoolTycoon.exe
     else
@@ -154,6 +156,9 @@ if [ "$window_mode" != gdi ]; then
     export CRUSTY_GLES=20 SDL_OPENGL_ES_DRIVER=1
     export SDL_VIDEO_EGL_DRIVER=/usr/lib/libEGL.so.1
     export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
+    # Box64 otherwise inherits SDL_VIDEO_GL_DRIVER as its desktop libGL.
+    # Wine needs GL4ES's OpenGL/GLX exports; SDL itself needs native GLES.
+    export BOX64_LIBGL="$weston_dir/lib_aarch64/graphics/$window_gl/libGL.so.1"
     export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
     export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
     export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'

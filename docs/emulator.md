@@ -141,3 +141,38 @@ before preparing the initramfs. The default boot ends at a guest shell.
 
 Captured frames and full traces remain private under the analysis workspace's
 `emulator/output` directory. No original game or firmware assets are tracked.
+
+## GL4ES bridge correction (2026-10-13)
+
+Two launcher/bridge defects were reproduced:
+
+- Box64 defaults its desktop libGL override to `SDL_VIDEO_GL_DRIVER`. The
+  previous launcher set that to native GLES, so Wine bypassed GL4ES. It now
+  sets `BOX64_LIBGL` explicitly to the selected desktop translation library.
+- Bundled Crusty's `glXGetFBConfigs` allocates its opaque configuration inside
+  the returned pointer array. Wine correctly frees that array and retains the
+  configuration, producing a dangling handle. Later `GLX_DRAWABLE_TYPE` queries
+  lose the window bit and Wine rejects the pixel format. The new native
+  `st-glx-config.c` returns a separate caller-owned pointer array and keeps the
+  original backing allocation alive for the process lifetime. It resolves the
+  bridge through its explicit library handle: Box64's `RTLD_NEXT` resolution
+  otherwise caused recursion in the initial experiment.
+
+`tools/emulator/glx-config-probe.c` reproduced the lifetime bug using the real
+ARM64 bridge: DRAWABLE-BEFORE=1 / AFTER=0, exit 4. With the helper it retained
+BEFORE=1 / AFTER=1, exit 0. The host fixture also exercises both enumeration
+functions after callers free their arrays; its uncorrected control fails.
+
+For the VM's substituted SDL X11 backend, set `SDL_VIDEO_X11_FORCE_EGL=1`.
+Without it SDL recursively used the desktop GLX path and failed context
+creation. This is a VM setting; the handheld uses SDL's Mali backend.
+`tools/emulator/graphics-env.sh` records the working VM library selection.
+
+With the corrected native helper and interpreter/dynarec command experiments,
+the actual PE32 Direct3D 8 probe wrote ST-D3D8-PASS: CreateDevice, Clear,
+LockRect pixel readback and Present succeeded through GL4ES/GLES. Those sessions
+still exited 137 during shutdown, including an interpreter client connected to
+a recompiler server. Rendering success is distinct from clean process exit.
+A fresh session with all Wine processes in interpreter mode is being checked.
+The original game with this GLES bridge has not yet reached a verified scene;
+the earlier original-game scene used desktop software Mesa.
