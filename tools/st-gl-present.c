@@ -84,6 +84,16 @@ void glBlitFramebufferEXT(int a, int b, int c, int d, int e, int f, int g, int h
 }
 
 void st_glLinkProgram(unsigned program);
+void st_uniform_linked(unsigned program);
+int st_glGetUniformLocation(unsigned, const char *);
+void st_glUniform4fv(int, int, const float *);
+void st_glUniformMatrix4fv(int, int, unsigned char, const float *);
+void st_glDeleteProgram(unsigned);
+
+static void link_with_uniforms(unsigned program) {
+    st_glLinkProgram(program);
+    st_uniform_linked(program);
+}
 
 void *crusty_glXGetProcAddressARB(const unsigned char *name) {
     pthread_once(&procedure_once, resolve_procedure);
@@ -94,7 +104,18 @@ void *crusty_glXGetProcAddressARB(const unsigned char *name) {
         return glBlitFramebuffer;
     if (result && (!strcmp((const char *)name, "glLinkProgram")
                || !strcmp((const char *)name, "glLinkProgramARB")))
-        return st_glLinkProgram;
+        return link_with_uniforms;
+    if (result && (!strcmp((const char *)name, "glGetUniformLocation")
+               || !strcmp((const char *)name, "glGetUniformLocationARB")))
+        return st_glGetUniformLocation;
+    if (result && (!strcmp((const char *)name, "glUniform4fv")
+               || !strcmp((const char *)name, "glUniform4fvARB")))
+        return st_glUniform4fv;
+    if (result && (!strcmp((const char *)name, "glUniformMatrix4fv")
+               || !strcmp((const char *)name, "glUniformMatrix4fvARB")))
+        return st_glUniformMatrix4fv;
+    if (result && !strcmp((const char *)name, "glDeleteProgram"))
+        return st_glDeleteProgram;
     return result;
 }
 

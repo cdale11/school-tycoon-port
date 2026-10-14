@@ -320,7 +320,7 @@ reload and sustained gameplay are not yet verified.
 Build the presentation helper for the target ABI from both source files:
 
 ```sh
-cc -O2 -fPIC -shared tools/st-gl-present.c tools/st-gl-shader.c \
+cc -O2 -fPIC -shared tools/st-gl-present.c tools/st-gl-shader.c tools/st-gl-uniform.c \
   -ldl -pthread -o libst-gl-present.so
 ```
 
@@ -384,3 +384,28 @@ while Wine input windows stay on :95; compile it with `cc -O2 -shared -fPIC
 -ldl` and place it at `/userdata/libsdl-display.so`. This helper is not included
 in handheld packages. Place the current combined presentation/shader helper at
 `/userdata/libst-gl-present.so` before running the game test.
+
+## Uniform-array corrections (2026-10-14)
+
+With capture pauses removed and the launch environment explicit, the saved
+scene reloaded and showed a character. Uniform-update errors continued and
+memory was exhausted. The game was stopped; this remains a failed sustained
+run, not a handheld memory measurement. Process maps showed growth in native
+heap/worker arenas as well as the guest's Windows allocations.
+
+`tools/st-gl-uniform.c` corrects two observed GL4ES cases using actual native
+program reflection: an inactive array-element query returned a nonnegative
+location, and a uniform write extending beyond the active array was rejected.
+OpenGL requires excess array elements to be ignored; invalid scalar writes
+remain errors. Array metadata is refreshed after linking and removed when the
+program is deleted. GL4ES still performs the valid updates and maintains its
+state cache.
+
+The actual native test reproduces the bad lookup without the correction
+(exit 7). With it, the inactive location is -1, oversized vec4/mat4 array writes
+produce no error, an oversized scalar write produces GL_INVALID_OPERATION,
+and the resulting pixel is 204/51/26/255 (exit 0). The existing native copy and
+framebuffer-binding restoration test also passes with this helper. Full-game
+and handheld validation of the added uniform correction remain pending.
+
+Reference: [OpenGL glUniform semantics](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glUniform.xhtml).
