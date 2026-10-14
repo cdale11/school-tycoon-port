@@ -36,12 +36,24 @@ cd /userdata/gamedata
 log=${ST_VM_LOG_PREFIX:-game-verified-env}
 case "$log" in ''|.|..|*[!A-Za-z0-9._-]*) exit 2 ;; esac
 "$bb" rm -f "/userdata/$log.status.txt"
-if LD_PRELOAD="$app_preload" LD_AUDIT="$app_audit" /userdata/box64-opt \
+LD_PRELOAD="$app_preload" LD_AUDIT="$app_audit" /userdata/box64-opt \
     /userdata/wine-10.0-amd64-wow64/bin/wine ./SchoolTycoon.exe \
-    >"/userdata/$log.stdout.txt" 2>"/userdata/$log.stderr.txt"; then
+    >"/userdata/$log.stdout.txt" 2>"/userdata/$log.stderr.txt" &
+app_pid=$!
+printf '%s\n' "$app_pid" >"/userdata/$log.pid.txt"
+trace_pid=
+if [ "${ST_VM_MAP_TRACE:-0}" = 1 ]; then
+    /userdata/st-map-trace "$app_pid" >"/userdata/$log.maps.trace.txt" 2>"/userdata/$log.maps.stderr.txt" &
+    trace_pid=$!
+fi
+if wait "$app_pid"; then
     status=0
 else
     status=$?
 fi
 printf '%s\n' "$status" >"/userdata/$log.status.txt"
+if [ -n "$trace_pid" ]; then
+    if wait "$trace_pid"; then trace_status=0; else trace_status=$?; fi
+    printf '%s\n' "$trace_status" >"/userdata/$log.maps.status.txt"
+fi
 exit "$status"

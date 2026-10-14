@@ -79,4 +79,9 @@ with tempfile.TemporaryDirectory(prefix="st-alloc-test-") as tmp:
     verify(subprocess.run([str(binary), str(library)],
                          env={**os.environ, "LD_AUDIT": str(helper)},
                          text=True, capture_output=True, check=True, timeout=15))
+    filtered = subprocess.run([str(binary), str(library)],
+                              env={**os.environ, "LD_AUDIT": str(helper),
+                                   "ST_ALLOCATION_MIN_SIZE": "67108864"},
+                              text=True, capture_output=True, check=True, timeout=15)
+    assert "events=0 dropped=0 minimum=67108864" in filtered.stderr, filtered.stderr
 print("PASS: preload and executable-allocator audit; aligned allocation, release, no dropped records")

@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 extern void *__libc_malloc(size_t);
@@ -16,9 +17,11 @@ extern void *__libc_calloc(size_t, size_t);
 extern void *__libc_realloc(void *, size_t);
 extern void __libc_free(void *);
 
-#define SLOTS 32768
+#define SLOTS 262144
 #define SITES 256
 #define MIN_SIZE 131072
+static size_t minimum_size = MIN_SIZE;
+static unsigned dump_interval = 100;
 struct allocation { void *pointer; size_t size; unsigned site; };
 struct site { void *caller; size_t live, peak, total; unsigned count; };
 static struct allocation allocations[SLOTS];
@@ -41,6 +44,19 @@ static void resolve_aligned(void) {
     pthread_once(&aligned_once, aligned_symbols);
     inside = previous;
 }
+__attribute__((constructor)) static void configure(void) {
+    const char *value = getenv("ST_ALLOCATION_MIN_SIZE");
+    char *end;
+    if (value && *value) {
+        unsigned long size = strtoul(value, &end, 10);
+        if (!*end && size >= 256 && size <= 67108864) minimum_size = size;
+    }
+    value = getenv("ST_ALLOCATION_DUMP_INTERVAL");
+    if (value && *value) {
+        unsigned long interval = strtoul(value, &end, 10);
+        if (!*end && interval && interval <= 1000000) dump_interval = (unsigned)interval;
+    }
+}
 
 static unsigned find(void *p) {
     unsigned h = ((uintptr_t)p >> 4) % SLOTS;
@@ -59,8 +75,8 @@ static void remove_allocation(void *p) {
 
 static void dump(void) {
     char line[512];
-    int n = snprintf(line, sizeof(line), "ST allocations pid=%ld events=%u dropped=%u\n",
-                     (long)getpid(), events, dropped);
+    int n = snprintf(line, sizeof(line), "ST allocations pid=%ld events=%u dropped=%u minimum=%zu interval=%u\n",
+                     (long)getpid(), events, dropped, minimum_size, dump_interval);
     write(2, line, (size_t)n);
     for (unsigned i = 0; i < site_count; i++) {
         Dl_info info = {0};
@@ -75,12 +91,12 @@ static void dump(void) {
 }
 
 static void record(void *old, void *p, size_t size, void *caller) {
-    if (inside || (!old && (!p || size < MIN_SIZE))) return;
+    if (inside || (!old && (!p || size < minimum_size))) return;
     int saved_errno = errno;
     inside = 1;
     pthread_mutex_lock(&lock);
     remove_allocation(old);
-    if (p && size >= MIN_SIZE) {
+    if (p && size >= minimum_size) {
         unsigned i;
         for (i = 0; i < site_count && sites[i].caller != caller; i++);
         if (i == site_count && site_count < SITES) {
@@ -102,7 +118,7 @@ static void record(void *old, void *p, size_t size, void *caller) {
             sites[i].live += size; sites[i].total += size; sites[i].count++;
             if (sites[i].live > sites[i].peak) sites[i].peak = sites[i].live;
         } else dropped++;
-        if (++events % 100 == 0) dump();
+        if (++events % dump_interval == 0) dump();
     }
     pthread_mutex_unlock(&lock);
     inside = 0;

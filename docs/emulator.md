@@ -467,3 +467,27 @@ combinations (Guide, Select, configured L3). Start alone did not exit, and a hel
 mouse button was released on exit. The production launcher orchestration check
 also passed; physical Fn and original-game exit remain unverified. Download
 archives still contain the older controller until the runtime update is rebuilt.
+
+The first allocator-audited level run also reached the school scene without the
+earlier uniform/link failures, then exhausted memory and was deliberately
+stopped. Tracked large readback buffers were released; large allocation records
+alone did not explain all of the growth. The next run lowers
+`ST_ALLOCATION_MIN_SIZE` to 4096 and uses
+`ST_ALLOCATION_DUMP_INTERVAL=1000` to keep diagnostic output bounded. The
+record table supports 262144 entries and reports dropped records. A host check
+also verifies that the configured threshold actually filters allocations.
+
+`map-trace.c` additionally records large mmap/munmap/mremap syscalls and native
+link/frame addresses, including mappings that bypass ELF allocator bindings.
+It uses Linux 4.9 arm64's syscall-entry/exit marker in x7, reads target registers
+and frame words, and does not modify them. An actual VM fixture passed both
+mapping/release capture and tracer detachment: the target continued and exited
+zero after the tracer was stopped. This is diagnostic instrumentation, not a
+handheld runtime component or a performance measurement.
+
+VM game sessions now record their exact application PID in
+`/userdata/<ST_VM_LOG_PREFIX>.pid.txt`. Optional `ST_VM_MAP_TRACE=1` starts the
+mapping tracer for that owned process and records its separate exit status.
+The tracer can instead be attached only during the scene-loading phase to
+reduce startup overhead. Native Mali allocation and emulator timing still
+require separate validation.
