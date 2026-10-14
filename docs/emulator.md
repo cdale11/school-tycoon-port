@@ -317,10 +317,11 @@ The full original-game test using the optimized interpreter runtime and this
 linking approach is in progress. It recognizes the previous Farmland save;
 reload and sustained gameplay are not yet verified.
 
-Build the presentation helper for the target ABI from both source files:
+Build the presentation helper for the target ABI from all four source files:
 
 ```sh
 cc -O2 -fPIC -shared tools/st-gl-present.c tools/st-gl-shader.c tools/st-gl-uniform.c \
+  tools/st-gl-source.c \
   -ldl -pthread -o libst-gl-present.so
 ```
 
@@ -511,3 +512,25 @@ The ARM64 controller helper also passed the real SDL virtual-controller/XTest
 checks inside the VM for Guide/Fn, Select and configured L3 plus Start, with
 Start-alone and held-button-release checks. Physical inputs and full-game
 exit are still separate checks.
+
+
+## Internal shader variant correction under test (2026-10-14)
+
+Fresh retained-allocation stacks reach Mesa shader linking from GL4ES's internal
+`fpe_CustomShader`. The sampled run's stdout contains 877 unresolved
+`setup_vs_output` failures. Earlier checks of Wine stderr missed these internal
+failures; rendering a scene did not establish error-free or stable rendering.
+The internal variants copy the first attached vertex source, which previously
+still contained only the output-function declaration.
+
+Our separate `st-gl-source.c` helper supplies the complete joined source when
+the application selects its linked program. It preserves the application's
+original source queries and restores that source before an application compile
+or relink. It does not modify vendor source or private vendor structures.
+
+The actual ARM64 alpha-test fixture reproduced the failure with the previous
+helper (exit 6, erroneous RGBA 204/51/26/64), then passed with this correction
+(exit 0, background RGBA 64/128/191/255). The fixture also verifies original
+source queries, repeated linking with a delete-pending output shader, uniform
+array writes and the scalar error check. Full original-game stability and
+handheld Mali behavior remain unverified.

@@ -4,8 +4,10 @@ An experimental launcher for the original School Tycoon (2004) on KNULLI Scarab.
 **A playable handheld port is not yet verified.** The ARM64 cloud VM has rendered
 the original intro, menus and Farmland school scene through the GLES bridge and
 written a save file. The latest source also reloads the saved scene with its
-character and trees, without the earlier shader-link and uniform errors.
-Sustained runs still exhaust memory; native allocation tracing is in progress.
+character and trees. Sustained runs still exhausted memory: allocation tracing
+identified repeated failures in GL4ES internal shader variants, recorded in
+stdout. A targeted ARM64 test reproduces that failure and passes with the latest
+source correction; full-game stability testing is in progress.
 The VM uses software Mesa rather than the handheld's Mali driver, so these
 results do not certify handheld rendering or performance.
 

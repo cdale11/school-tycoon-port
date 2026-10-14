@@ -20,6 +20,7 @@ static void (*desktop_vector)(int, int, const float *);
 static void (*desktop_matrix)(int, int, unsigned char, const float *);
 static void (*desktop_delete)(unsigned);
 static int available;
+void st_source_program_deleted(unsigned);
 
 static void load(void) {
     const char *p = getenv("BOX64_LIBGL"), *n = getenv("SDL_VIDEO_GL_DRIVER");
@@ -125,5 +126,6 @@ void st_glDeleteProgram(unsigned id) {
     pthread_once(&symbols_once, load);
     if (!desktop_delete) abort();
     desktop_delete(id);
+    st_source_program_deleted(id);
     pthread_mutex_lock(&cache_lock); forget(id); pthread_mutex_unlock(&cache_lock);
 }

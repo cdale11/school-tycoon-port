@@ -25,6 +25,8 @@ static unsigned (*native_create_program)(void);
 static int available;
 static pthread_mutex_t report_lock = PTHREAD_MUTEX_INITIALIZER;
 static int reported;
+void st_source_before_link(unsigned, int, const unsigned *);
+void st_source_joined(unsigned, unsigned, const char *, const char *);
 
 static void resolve_symbols(void) {
     const char *desktop_path = getenv("BOX64_LIBGL");
@@ -66,6 +68,7 @@ void st_glLinkProgram(unsigned program) {
     char *main_source = NULL, *output_source = NULL;
     int vertices = 0;
     get_attached(program, 8, &count, shaders);
+    st_source_before_link(program, count, shaders);
     for (int i = 0; i < count; i++) {
         int type = 0, length = 0;
         get_shader(shaders[i], 0x8b4f, &type); /* GL_SHADER_TYPE */
@@ -98,11 +101,10 @@ void st_glLinkProgram(unsigned program) {
     const char *text = joined;
     set_source(combined, 1, &text, NULL);
     compile_shader(combined);
-    free(joined);
     int compiled = 0;
     get_shader(combined, 0x8b81, &compiled); /* GL_COMPILE_STATUS */
     unsigned holding = compiled ? native_create_program() : 0;
-    if (!holding) { delete_shader(combined); goto fallback; }
+    if (!holding) { free(joined); delete_shader(combined); goto fallback; }
 
     /* Keep delete-pending original shaders alive while temporarily detached. */
     native_attach(holding, main_id); native_attach(holding, output_id);
@@ -113,6 +115,10 @@ void st_glLinkProgram(unsigned program) {
     native_attach(program, main_id); native_attach(program, output_id);
     native_delete_program(holding);
     delete_shader(combined);
+    int linked = 0;
+    get_program(program, 0x8b82, &linked);
+    if (linked) st_source_joined(program, main_id, main_source, joined);
+    free(joined);
     pthread_mutex_lock(&report_lock);
     if (!reported) {
         fputs("ST graphics: joined Wine vertex output function\n", stderr);

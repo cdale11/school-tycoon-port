@@ -89,6 +89,12 @@ int st_glGetUniformLocation(unsigned, const char *);
 void st_glUniform4fv(int, int, const float *);
 void st_glUniformMatrix4fv(int, int, unsigned char, const float *);
 void st_glDeleteProgram(unsigned);
+void st_glUseProgram(unsigned);
+void st_glShaderSource(unsigned, int, const char **, const int *);
+void st_glCompileShader(unsigned);
+void st_glGetShaderiv(unsigned, unsigned, int *);
+void st_glGetShaderSource(unsigned, int, int *, char *);
+void st_glDeleteShader(unsigned);
 
 static void link_with_uniforms(unsigned program) {
     st_glLinkProgram(program);
@@ -116,6 +122,12 @@ void *crusty_glXGetProcAddressARB(const unsigned char *name) {
         return st_glUniformMatrix4fv;
     if (result && !strcmp((const char *)name, "glDeleteProgram"))
         return st_glDeleteProgram;
+    if (result && (!strcmp((const char *)name, "glUseProgram") || !strcmp((const char *)name, "glUseProgramObjectARB"))) return st_glUseProgram;
+    if (result && (!strcmp((const char *)name, "glShaderSource") || !strcmp((const char *)name, "glShaderSourceARB"))) return st_glShaderSource;
+    if (result && (!strcmp((const char *)name, "glCompileShader") || !strcmp((const char *)name, "glCompileShaderARB"))) return st_glCompileShader;
+    if (result && !strcmp((const char *)name, "glGetShaderiv")) return st_glGetShaderiv;
+    if (result && (!strcmp((const char *)name, "glGetShaderSource") || !strcmp((const char *)name, "glGetShaderSourceARB"))) return st_glGetShaderSource;
+    if (result && !strcmp((const char *)name, "glDeleteShader")) return st_glDeleteShader;
     return result;
 }
 
