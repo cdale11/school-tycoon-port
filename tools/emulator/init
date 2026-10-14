@@ -23,6 +23,9 @@ done
 [ -n "$data_device" ] || exec sh
 mkdir -p /lower/userdata/host
 mount -t 9p -o trans=virtio,version=9p2000.L,ro,msize=262144 analysis /lower/userdata/host || exec sh
+mkdir -p /lower/userdata/results
+# Optional output-only share avoids freezing the running game for screenshots.
+mount -t 9p -o trans=virtio,version=9p2000.L,msize=262144 results /lower/userdata/results 2>/dev/null || true
 mount --bind /dev /lower/dev
 mount --bind /proc /lower/proc
 mount --bind /sys /lower/sys

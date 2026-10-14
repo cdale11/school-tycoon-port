@@ -41,7 +41,8 @@ Run with `LD_LIBRARY_PATH` pointing to the extracted QEMU native libraries:
 python3 tools/emulator/launch.py \
   --vm-dir /workspace/school-tycoon-analysis/emulator \
   --analysis-dir /workspace/school-tycoon-analysis \
-  --qemu /workspace/school-tycoon-analysis/emulator/qemu/usr/bin/qemu-system-aarch64
+  --qemu /workspace/school-tycoon-analysis/emulator/qemu/usr/bin/qemu-system-aarch64 \
+  --results-dir /workspace/school-tycoon-analysis/emulator/results
 ```
 
 The VM has no network device. Copy executable runtimes and game test data into
@@ -341,3 +342,31 @@ array conversion reproduces the link failure (exit 4). Enabling the documented
 GL4ES option `LIBGL_NOTEXARRAY=1` passes all 64 links and renders the expected
 colour (exit 0). The GL4ES launcher now selects this option alongside the joined
 output function. A new full-game reload using both corrections is in progress.
+
+## Capture without filesystem pauses (2026-10-14)
+
+The earlier screenshot procedure froze `/userdata` while the raw disk was
+read. Some freezes were left active too long, blocking Wine registry and cache
+writes. Startup/shutdown timeouts and sustained-run timings overlapping those
+pauses are unreliable and require rerunning. Native shader link errors and
+pixel checks remain reproducible, but neither the freezes nor the observed
+OOM events establish a handheld memory diagnosis.
+
+The VM now has an optional dedicated writable output share selected by
+`--results-dir`. The original analysis/game-input share stays read-only. The
+initramfs mounts the output share at `/userdata/results`. Capture with:
+
+```sh
+bash /userdata/host/emulator/shared/capture.sh :96 frame.ppm
+```
+
+Copy `tools/emulator/capture.sh` into that private shared-script directory first.
+After the command reports completion, read the corresponding host result file
+directly. Do not freeze live guest storage or inspect its raw disk for ordinary
+screenshots. Only use raw-disk tools after stopping this task's VM. Keep high-rate
+game logs on guest ext4; copy selected closed files or log tails to the output
+share for inspection.
+
+A rebuilt initramfs and cold boot validated the output mount and a complete
+800x600 RGB capture visible on the host. The guest reported MemTotal 996496 KiB
+and SwapTotal 498240 KiB, with CRNG initialization at uptime 1.07 seconds.

@@ -13,6 +13,8 @@ parser.add_argument('--analysis-dir', type=Path, required=True,
 parser.add_argument('--qemu', type=Path, required=True)
 parser.add_argument('--socket-console', action='store_true',
                     help='Use reconnectable private UNIX serial/monitor sockets')
+parser.add_argument('--results-dir', type=Path,
+                    help='Dedicated writable output share for captures and logs')
 args = parser.parse_args()
 profile = json.loads(Path(__file__).with_name('rg34xxsp.json').read_text())
 vm = args.vm_dir.resolve()
@@ -43,6 +45,14 @@ command = [str(args.qemu.resolve()), '-machine', 'virt,gic-version=2,highmem=off
            '-object', 'rng-random,id=hostrng,filename=/dev/urandom',
            '-device', 'virtio-rng-device,rng=hostrng',
            '-nic', 'none', '-nographic']
+if args.results_dir:
+    results = args.results_dir.resolve()
+    analysis = args.analysis_dir.resolve()
+    if results == analysis or results in analysis.parents:
+        parser.error('The writable output share must not contain the private input share')
+    results.mkdir(parents=True, exist_ok=True)
+    command += ['-fsdev', f'local,id=results,path={results},security_model=none',
+                '-device', 'virtio-9p-device,fsdev=results,mount_tag=results']
 if args.socket_console:
     for name in ('serial.sock', 'monitor.sock'):
         if (vm / name).exists():
