@@ -575,3 +575,27 @@ link failures. This validates sustained rendering of a paused scene; it does
 not yet validate active simulation, placement or handheld performance.
 Native XTest held mouse clicks also opened Play and Load Game and started the
 save, confirming the controller helper's input mechanism reaches this game.
+
+
+The ARM64 SDL virtual-controller fixture subsequently ran while the original
+game was alive. Guide/Fn + Start returned success from the controller helper;
+a watcher using the launcher's exit decision stopped only that owned game PID
+and its Wine prefix. `ST-GAME-EXIT-PASS` was recorded, and the immutable game
+session preserved status 143 from the intentional stop. Start alone did not
+exit, and held mouse buttons were released. This verifies the simulated
+controller/cleanup path with the original game; physical buttons and the
+complete handheld launcher/display path remain unverified.
+
+`verify-controller-exit.sh LOG_PREFIX FIXTURE_PY HELPER_SO` repeats this private
+VM check for a currently running owned test. It rejects finished log sessions
+and unrelated process names. The observer uses the supplied ARM64 helper and
+real SDL virtual-controller/XTest fixture, not mocked controller functions.
+
+Placement remains unverified. In the separate-display 3D test, pointer motion
+and building previews work, but native clicks, Wine SendInput and posted clicks
+did not activate placement. A read-only probe confirmed matching foreground
+and engine window handles. A synchronous click timed out, although the engine's
+mouse-button state showed that its down event eventually arrived. All test
+presses were cleared before the owned prefix was stopped. The next differential
+test uses `ST_VM_BACKEND_DISPLAY=:95` to place SDL presentation and Wine input
+on the same X display; the existing separate-display default stays :96.

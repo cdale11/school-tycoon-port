@@ -9,7 +9,9 @@ export HOME=/userdata/home XDG_CACHE_HOME=/userdata/cache
 "$bb" mkdir -p "$HOME" "$XDG_CACHE_HOME"
 script_dir=$("$bb" dirname "$0")
 . "$script_dir/graphics-env.sh"
-export DISPLAY=:95 ST_SDL_DISPLAY=:96
+export DISPLAY=:95
+export ST_SDL_DISPLAY=${ST_VM_BACKEND_DISPLAY:-:96}
+case "$ST_SDL_DISPLAY" in :95|:96) ;; *) exit 2 ;; esac
 export FONTCONFIG_FILE=/userdata/window-fonts.conf
 export ST_EGL_TARGET=SchoolTycoon.exe
 export WINEPREFIX=/userdata/prefix-gpu-fast BOX64_DYNAREC=0 BOX64_LOG=1
