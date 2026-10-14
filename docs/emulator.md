@@ -91,10 +91,10 @@ visuals. Changing DISPLAY within an already-running Wine session also produced
 an invalid comparison; restart that prefix's services when changing displays.
 
 `tools/emulator/capture.c` captures the X11 root window as a private PPM frame.
-To extract a consistent file from an active guest disk, temporarily freeze
-**only that VM filesystem**, read it with host debugfs, then immediately thaw it.
-BusyBox uses `fsfreeze --freeze /userdata` and `--unfreeze /userdata`.
-Never run a writable filesystem repair tool against a live VM disk.
+Use the dedicated output share and `tools/emulator/capture.sh` described below.
+The earlier raw-disk snapshot method was superseded after filesystem pauses
+stalled Wine. Do not freeze live storage for screenshots. Stop the task VM
+before inspecting or repairing its raw disk.
 
 ## School scene and remaining failures
 
