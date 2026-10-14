@@ -534,3 +534,18 @@ helper (exit 6, erroneous RGBA 204/51/26/64), then passed with this correction
 source queries, repeated linking with a delete-pending output shader, uniform
 array writes and the scalar error check. Full original-game stability and
 handheld Mali behavior remain unverified.
+
+
+The extended alpha-test fixture also passed 16 relinks after program use,
+checking the discarded pixel and original source each time. Native framebuffer
+copy/binding restoration and uniform-array probes passed with the four-source
+helper. The first two full-game attempts stopped before graphics initialization
+with Wine's explorer-start failure; exit zero did not establish a game pass.
+A plain GDI diagnostic loaded the X11 desktop; its exit 2 came from trying to
+write its result in the read-only shell working directory. Startup diagnostics
+are separate from the passing shader tests.
+
+`sample-memory.sh PID filename` records process RSS, anonymous RSS, swap and
+thread count alongside guest available memory every 30 seconds. It checks the
+VM model and process start time, so PID reuse ends sampling. It only observes
+the owned test and writes its bounded-rate log under `/userdata`.
