@@ -148,7 +148,7 @@ if [ "$window_mode" != gdi ]; then
         window_app_preload="$window_root/runtime/graphics/libst-gl-present.so:$window_app_preload"
         window_gles=30
         # Crusty supplies one native context rather than GLX context switching.
-        export WINE_D3D_CONFIG=csmt=0
+        export WINE_D3D_CONFIG=csmt=0 LIBGL_NOTEXARRAY=1
     fi
     if [ "$window_mode" = game ]; then
         export ST_EGL_TARGET=SchoolTycoon.exe

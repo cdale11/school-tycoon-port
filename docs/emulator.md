@@ -329,3 +329,15 @@ For the unmodified Box64 revision recorded above, explicitly set
 the ARM64 build. Verify the generated interpreter flags include `-O2`; a
 Release cache label alone is insufficient. The optimized binary requires
 glibc 2.38 or newer, within the device's reported glibc 2.40 ABI.
+
+The first full-game run with output-function joining still failed to link its
+vertex/fragment interface: `_gl4es_TexCoord_0` had no matching vertex output.
+It reloaded the saved terrain/HUD, but trees were missing, draw errors continued
+and the game was again killed by OOM. This is not a successful reload/rendering
+pass.
+
+An expanded native test includes texture-coordinate outputs. The default
+array conversion reproduces the link failure (exit 4). Enabling the documented
+GL4ES option `LIBGL_NOTEXARRAY=1` passes all 64 links and renders the expected
+colour (exit 0). The GL4ES launcher now selects this option alongside the joined
+output function. A new full-game reload using both corrections is in progress.

@@ -14,5 +14,5 @@ export LIBGL_EGL="$CRUSTY_LIBEGL" LIBGL_GLES="$SDL_VIDEO_GL_DRIVER" LIBGL_ES=2
 export BOX64_LIBGL=/userdata/weston/lib_aarch64/graphics/gl4es_glxpass/libGL.so.1
 export ST_CRUSTY_LIBRARY=/userdata/weston/lib_aarch64/graphics/crusty_glx/libcrusty.so
 export LD_LIBRARY_PATH=/userdata/weston/lib_aarch64/graphics/gl4es_glxpass:/userdata/weston/lib_aarch64/graphics/crusty_glx:/userdata/weston/lib_aarch64:/userdata/graphics/usr/lib/aarch64-linux-gnu
-export WINE_D3D_CONFIG=csmt=0
+export WINE_D3D_CONFIG=csmt=0 LIBGL_NOTEXARRAY=1
 export LD_PRELOAD=/userdata/libst-gl-present.so:/userdata/libst-glx-config.so:/userdata/libst-egl-prime.so:$ST_CRUSTY_LIBRARY

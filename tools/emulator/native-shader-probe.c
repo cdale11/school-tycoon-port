@@ -55,11 +55,11 @@ int main(void) {
     LOAD(desktop, void, glVertex2f, (float,float));
     LOAD(desktop, void, glEnd, (void));
     LOAD(desktop, void, glReadPixels, (int,int,int,int,unsigned,unsigned,void*));
-    const char *vs = "#version 120\nvoid setup_vs_output(in vec4[1]);\n"
-        "void main(){ vec4 v[1]; v[0]=gl_Vertex; setup_vs_output(v); }\n";
+    const char *vs = "#version 120\nvoid setup_vs_output(in vec4[2]);\n"
+        "void main(){vec4 v[2];v[0]=gl_Vertex;v[1]=vec4(0.8,0.2,0.1,1.0);setup_vs_output(v);}\n";
     const char *out = "#version 120\ninvariant gl_Position;\n"
-        "void setup_vs_output(in vec4 outputs[1]){gl_Position=outputs[0];}\n";
-    const char *ps = "#version 120\nvoid main(){gl_FragColor=vec4(0.8,0.2,0.1,1.0);}\n";
+        "void setup_vs_output(in vec4 outputs[2]){gl_Position=outputs[0];gl_TexCoord[0]=outputs[1];}\n";
+    const char *ps = "#version 120\nvoid main(){gl_FragColor=gl_TexCoord[0];}\n";
     unsigned shaders[3] = {glCreateShader(0x8b31), glCreateShader(0x8b31), glCreateShader(0x8b30)};
     const char *texts[3] = {vs, out, ps};
     unsigned program = glCreateProgram();

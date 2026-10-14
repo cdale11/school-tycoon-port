@@ -1,17 +1,17 @@
 # School Tycoon for RG34XXSP
 
 An experimental launcher for the original School Tycoon (2004) on KNULLI Scarab.
-**A playable port is not yet verified.** The latest handheld game run reaches audio/session setup but fails during
-Direct3D 8 initialization. The current update loads EGL/SDL directly and primes
-native EGL before Wine creates its Windows address mappings. This targeted
-workaround has passed cloud EGL checks but has not been verified on Mali.
-The latest graphics fix selects GL4ES explicitly for Wine and preserves the
-bundled bridge's framebuffer configuration handles after enumeration arrays
-are freed. Direct3D 8 clear/readback/present now passes through GL4ES in the
-ARM64 VM; this remains a software GLES test, not a handheld gameplay pass.
-The presentation helper now uses native ES3 framebuffer copies and the
-original game's main menu is visible through the GLES bridge in the VM.
-Handheld rendering and usable performance remain unverified.
+**A playable handheld port is not yet verified.** The ARM64 cloud VM has rendered
+the original intro, menus and Farmland school scene through the GLES bridge and
+written a save file. Sustained runs still failed with shader errors and exhausted
+memory. Native tests now verify corrections for framebuffer copies and Wine's
+vertex-shader linking; the full-game test of the combined fixes is in progress.
+The VM uses software Mesa rather than the handheld's Mali driver, so these
+results do not certify handheld rendering or performance.
+
+The latest shader corrections are currently in source for cloud testing.
+The downloadable archives still contain the earlier framebuffer fixes until
+full-game validation of the new shader/runtime changes is complete.
 
 ## Update an existing installation
 
