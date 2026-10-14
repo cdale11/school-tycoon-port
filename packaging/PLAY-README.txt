@@ -1,79 +1,63 @@
-School Tycoon — experimental full-game launcher for KNULLI RG34XXSP
+School Tycoon — RG34XXSP / KNULLI Scarab handheld candidate
 
-This launches the original game, not a diagnostic. It is NOT a verified playable
-port. Latest device tests failed to create Direct3D 8; the early EGL initialization helper is
-an unverified workaround on Mali. The verified CPU interpreter can be very slow.
+INSTALL OR UPDATE
+Stop School Tycoon. Extract school-tycoon-handheld.tar.gz into
+/userdata/roms/ports/, replacing the included files. Do not delete your existing
+gamedata, prefix-wine-10.0 or linked runtime-probe directory. No assets, saves,
+settings or Wine prefix are included in this archive.
 
-INSTALL
-Extract beside your other Ports, under /userdata/roms/ports/.
-The archive contains "School Tycoon.sh" and the "school-tycoon" directory.
-For the public GitHub package, copy the contents of your original ST folder to:
-  /userdata/roms/ports/school-tycoon/gamedata/
-SchoolTycoon.exe and Data must be directly inside gamedata.
-The private archive already includes your supplied files; install it into a new
-school-tycoon directory so existing settings or saves are not overwritten.
-Refresh the KNULLI games list, then select School Tycoon under Ports.
-You can also run: sh "/userdata/roms/ports/School Tycoon.sh"
-
-The launcher reuses the previously installed Wine, Weston and Wine prefix when
-available. Otherwise it downloads checksum-verified Wine 10.0 once (62 MiB) and
-extracts the installed PortMaster Weston runtime. Allow 2 GiB free, or 3 GiB
-when extracting the private archive. First Wine startup may take several minutes. Missing builtin DLLs after an
-interrupted setup are repaired in a private X11 session before launching the game; see logs/prefix-setup.txt. Readiness requires a successful 32-bit Windows command, not only updater success.
-Verified downloads are cached under runtime/downloads. A retry reuses that
-archive; valid installed Wine is not downloaded again. A stale runtime link to
-an old deleted probe directory is removed without deleting target files. A stale
-prefix link is preserved as prefix-wine-10.0.missing-target.TIMESTAMP for recovery.
-The private archive contains Wine already and needs no Wine download.
+For a new installation, copy the contents of your original ST folder into
+/userdata/roms/ports/school-tycoon/gamedata/. SchoolTycoon.exe and Data must be
+directly inside gamedata. PortMaster must already be installed. Allow 2 GiB free.
+Refresh the KNULLI games list, then launch School Tycoon under Ports.
+Alternatively: sh "/userdata/roms/ports/School Tycoon.sh"
+Wine 10.0 is reused if installed; otherwise one checksum-verified download is
+cached. The PortMaster Weston runtime is extracted locally. First prefix setup
+may take several minutes. GUI desktop readiness allows up to 180 seconds and
+blocks game launch on failure. Its helper exits when the game window appears.
+Logs identify setup, readiness and game launch phases.
+This is a compatibility launcher for the original game, not a rewritten engine.
 
 CONTROLS
-D-pad: mouse pointer             A: left click (hold to drag)
-B: right click                 X: Space
-Y: Escape                      Start: Enter
-L1 held: precision pointer     R1: Tab
-L2 / R2: Page Up / Page Down
-Fn/Guide + Start or Select + Start: stop this game session (save in-game first)
-USB mouse and keyboard can also be used.
-Controller input is sent only to this session's X display.
+D-pad: pointer; A: left click/hold to drag; B: right click.
+L1 held: precise pointer; X: Space; Y: Escape; Start: Enter.
+R1: Tab; L2/R2: Page Up/Down. USB input on the handheld is unverified.
+Fn/Guide + Start exits this game session; Select + Start is the fallback.
+Save first. Simulated SDL exit is tested; physical Fn mapping is not certified.
+
+MEMORY AND GRAPHICS
+Optimized Box64 -O2 interpreter, Cortex-A53-tuned native helpers, bounded heap
+arenas and single-context rendering are the default. Native Mali EGL/GLES is
+selected on the handheld. No software Mesa renderer is bundled. Select Low detail
+and 800x600 in-game when available. No settings or save is edited automatically.
+For stable defaults, remove cpu-mode.txt only if you previously opted into
+dynarec. Dynarec remains experimental; forced multithreaded rendering is unsafe.
+Symbols are stripped to reduce storage, not claimed as a RAM saving.
 
 SAVES
-Game-directory saves/settings remain in school-tycoon/gamedata; Windows user
-files remain in school-tycoon/prefix-wine-10.0. If the launcher reused the old
-probe prefix, that path is a link: keep school-tycoon-runtime-probe until you
-have backed up or moved that prefix. Back up both locations. No save reset or
-settings.dat edits are performed. Use Low detail and 800x600 in game if it opens.
-Actual saving, audio, shaders and gameplay on the handheld are not yet verified.
+Back up gamedata and prefix-wine-10.0 (follow its link if applicable). In-game
+saves normally live in gamedata/Data/SAVED_GAMES. Never delete a linked probe
+directory until its prefix and Wine runtime have been backed up/moved.
 
-CPU
-Default: interpreter, the only mode with successful Windows exits on this device.
-Optional: write the single word dynarec into school-tycoon/cpu-mode.txt to try a
-more conservative dynamic-recompiler configuration. Earlier recompiler runs
-were killed with status 137; this new configuration is unverified. Remove that
-file to restore the interpreter. No automatic CPU retries or diagnostic runs.
+DIAGNOSTICS
+Logs live in school-tycoon/logs/. launcher.txt: installer and package checks.
+system.txt: firmware, build identity, memory/storage and native library paths.
+game.txt: launch phases, owned PIDs and exit status. desktop.txt: Wine GUI readiness.
+controls.txt: controller
+mapping/connection. game-wine.txt and game-wine.stdout.txt: bounded output with
+a .previous segment, at most 256 KiB per segment. memory.csv: last hour of
+30-second process RSS/swap/thread and system-memory samples. game-weston.txt:
+private display startup/teardown. A preceding launcher/session attempt is retained.
+For graphics warnings and CPU/library startup details, put the single digit 1 in school-tycoon/debug.txt. Remove
+it to restore normal error-only Wine logging. Logs do not include environment
+dumps or game assets. Send the whole logs directory if startup fails.
+No fixed black-screen timer proves readiness; consult the launch phase and logs.
 
-LOGS
-school-tycoon/logs/launcher.txt, game.txt, game-wine.txt,
-game-wine.stdout.txt, game-weston.txt and controls.txt are captured automatically.
-A process starting or exiting successfully does not demonstrate playable gameplay.
-
-THIRD-PARTY COMPONENTS
-Box64 MIT, pinned 45f85efc52d7bd3a3c8642bfc5093ce7932f6c23:
-  https://github.com/ptitSeb/box64/tree/45f85efc52d7bd3a3c8642bfc5093ce7932f6c23
-Wine 10.0 LGPL, unmodified Kron4ek AMD64 WoW64 build:
-  https://github.com/Kron4ek/Wine-Builds/releases/tag/10.0
-  https://gitlab.winehq.org/wine/wine/-/tree/wine-10.0
-The launcher verifies Wine's published SHA256 before downloading/extracting.
-Debian libgcc_s.so.1: copyright, license and source provenance under runtime/x86_64.
-Weston/Crusty/GL4ES are reused from your installed PortMaster runtime.
-Original game files remain proprietary and are omitted from GitHub packages.
-
-CURRENT 1 GiB HANDHELD BUILD
-Includes the joined-vertex, uniform-array and internal shader-source fixes tested
-with the original game in the ARM64 VM. Classroom placement, saving and Day 1
-were observed. Native Mali gameplay, audio and speed still need device validation.
-Box64 is built with -O2 instead of the previous -O0. Interpreter remains default.
-MALLOC_ARENA_MAX=2 limits heap arenas; Wine rendering remains csmt=0 for the
-single-context graphics bridge. Fn/Guide + Start exits the owned game session;
-Select + Start is a fallback. Save first. Physical Fn mapping remains unverified.
-Extract over the existing installation while the game is stopped. No game data,
-saves, Wine prefix or cpu-mode.txt is included or removed by this archive.
+VALIDATION LIMITS
+ARM64 VM: intro, menus, classroom placement, save, Day 3 and eight students;
+roughly 688–701 MiB game RSS, no process swap during observed scenes. This is
+process memory, not total device memory. The VM uses software GLES and a virtual
+board. It cannot emulate Mali-G31/libmali, H700 display/audio or physical controls.
+Handheld gameplay, sound, scaling and usable speed remain unverified. This is
+a release candidate, not a guarantee of a production-ready handheld port.
+Licenses and runtime source links are in school-tycoon/BUILD-NOTICES.txt.

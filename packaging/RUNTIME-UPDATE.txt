@@ -1,4 +1,4 @@
-School Tycoon runtime update — experimental, not a verified playable port
+Legacy runtime-update archive — superseded by school-tycoon-handheld.tar.gz
 
 Exit the old session. Extract into /userdata/roms/ports/ and replace included
 files. Launch School Tycoon normally. Do not delete your game files or prefix.

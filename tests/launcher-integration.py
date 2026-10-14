@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         path.chmod(0o755)
-    source = (repo/'tools/test-window.sh').read_text()
+    source = (repo/'tools/run-game.sh').read_text()
     source = source.replace('/tmp/.X11-unix', str(root/'sockets'))
     source = source.replace('/tmp/.X0-lock', str(root/'x0-lock'))
     script(root/'run-game.sh', source)
@@ -26,11 +26,14 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
     (root/'runtime/graphics/libst-gl-present.so').touch()
     (root/'gamedata').mkdir()
     (root/'gamedata/SchoolTycoon.exe').touch()
+    (root/'st-desktop-ready.exe').touch()
     weston = root/'runtime/weston-0.2'
-    script(weston/'wp_weston', '#!/usr/bin/python3\nimport socket,signal,time\ns=socket.socket(socket.AF_UNIX)\ns.bind('+repr(str(root/'sockets/X0'))+')\nsignal.signal(signal.SIGTERM,lambda *a:exit(0))\nwhile True: time.sleep(1)\n')
+    script(weston/'wp_weston', '#!/usr/bin/python3\nimport socket,signal,time,os\np='+repr(str(root/'sockets/X0'))+'\ns=socket.socket(socket.AF_UNIX)\ns.bind(p)\ndef stop(*args):\n s.close()\n os.unlink(p)\n exit(0)\nsignal.signal(signal.SIGTERM,stop)\nwhile True: time.sleep(1)\n')
+    subprocess.run(['cc','-O2',str(repo/'tools/st-log.c'),'-o',str(root/'st-log')],check=True)
+    script(root/'sample-session.sh', '#!/bin/sh\nexit 0\n')
     script(root/'prepare-prefix.sh', '#!/bin/sh\n[ "$DISPLAY" = :0 ] && [ -z "${LD_PRELOAD:-}" ] || exit 98\n')
     script(root/'st-controls', '#!/bin/sh\ntrap \'echo stopped > "'+str(root/'controls-stopped')+'"; exit 1\' TERM\nwhile :; do sleep 0.1; done\n')
-    script(root/'box64', '#!/usr/bin/python3\nimport os,sys,json\nfrom pathlib import Path\nr=Path('+repr(tmp)+')\nif sys.argv[1].endswith("wineserver"):\n (r/"wine-stopped").touch()\n sys.exit(0)\n(r/"observed.json").write_text(json.dumps({"cwd":os.getcwd(),"args":sys.argv[2:],"gles":os.environ.get("SDL_VIDEO_GL_DRIVER"),"desktop_gl":os.environ.get("BOX64_LIBGL"),"context":os.environ.get("CRUSTY_GLES"),"d3d_config":os.environ.get("WINE_D3D_CONFIG"),"discrete":os.environ.get("LIBGL_NOTEXARRAY"),"cpu":os.environ.get("BOX64_DYNAREC"),"target":os.environ.get("ST_EGL_TARGET"),"preload":os.environ.get("LD_PRELOAD")}))\nsys.exit(7)\n')
+    script(root/'box64', '#!/usr/bin/python3\nimport os,sys,json\nfrom pathlib import Path\nr=Path('+repr(tmp)+')\nif sys.argv[-1].endswith("st-desktop-ready.exe"):\n import signal,time\n (r/"logs/desktop-ready.txt").write_text("ST-DESKTOP-READY\\n")\n signal.signal(signal.SIGTERM,lambda *a:sys.exit(0))\n while True: time.sleep(0.1)\nif sys.argv[1].endswith("wineserver"):\n (r/"wine-stopped").touch()\n sys.exit(0)\n(r/"observed.json").write_text(json.dumps({"cwd":os.getcwd(),"args":sys.argv[2:],"gles":os.environ.get("SDL_VIDEO_GL_DRIVER"),"desktop_gl":os.environ.get("BOX64_LIBGL"),"context":os.environ.get("CRUSTY_GLES"),"d3d_config":os.environ.get("WINE_D3D_CONFIG"),"discrete":os.environ.get("LIBGL_NOTEXARRAY"),"cpu":os.environ.get("BOX64_DYNAREC"),"target":os.environ.get("ST_EGL_TARGET"),"preload":os.environ.get("LD_PRELOAD")}))\nsys.exit(7)\n')
     mocks = root/'mock-bin'
     script(mocks/'uname', '#!/bin/sh\necho aarch64\n')
     script(mocks/'sha256sum', '#!/bin/sh\ncat >/dev/null\nexit 0\n')
@@ -44,4 +47,26 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
                     'gles':'/usr/lib/libGLESv2.so.2','desktop_gl':str(weston/'lib_aarch64/graphics/gl4es_glxpass/libGL.so.1'),'context':'30','d3d_config':'csmt=0','discrete':'1','cpu':'0','target':'SchoolTycoon.exe','preload':str(root/'runtime/graphics/libst-gl-present.so')+':'+str(root/'runtime/graphics/libst-glx-config.so')+':'+str(root/'runtime/graphics/libst-egl-prime.so')+':'+str(weston/'lib_aarch64/graphics/crusty_glx/libcrusty.so')}, data
     assert (root/'controls-stopped').exists()
     assert (root/'wine-stopped').exists()
-    print('PASS: original-game command, asset cwd, GLES selection, CPU baseline, exit status, cleanup')
+    assert not list((root/'logs').glob('.pipes.*')), 'Logger FIFO directory leaked'
+    # Controller shortcut while the game is live: only owned processes are stopped.
+    script(root/'st-controls', '#!/bin/sh\nsleep 0.3\nexit 0\n')
+    box_source=(root/'box64').read_text().replace('sys.exit(7)',
+        'import signal,time\ndef stop(*args):\n (r/"game-stopped").touch()\n sys.exit(143)\nsignal.signal(signal.SIGTERM,stop)\nwhile True: time.sleep(0.1)')
+    script(root/'box64',box_source)
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=15)
+    assert result.returncode==0,(result.returncode,(root/'logs/game.txt').read_text())
+    assert 'Controller exit shortcut requested exit.' in (root/'logs/game.txt').read_text()
+    assert (root/'game-stopped').exists(), 'Owned game was not stopped'
+    assert not list((root/'logs').glob('.pipes.*')), 'Shortcut leaked logger FIFOs'
+    # A desktop helper failure must stop before starting the original game.
+    (root/'observed.json').unlink()
+    broken=(root/'box64').read_text()
+    start=broken.index('if sys.argv[-1].endswith("st-desktop-ready.exe"):')
+    end=broken.index('if sys.argv[1].endswith("wineserver"):',start)
+    broken=broken[:start]+'if sys.argv[-1].endswith("st-desktop-ready.exe"):\n sys.exit(3)\n'+broken[end:]
+    script(root/'box64',broken)
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=15)
+    assert result.returncode==1
+    assert not (root/'observed.json').exists(), 'Game started despite failed desktop readiness'
+    assert 'Desktop helper exited before readiness: 3' in (root/'logs/game.txt').read_text()
+    print('PASS: command/cwd/GLES/CPU, desktop readiness/failure gate, logger cleanup, controller shortcut and owned cleanup')

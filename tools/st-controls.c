@@ -51,17 +51,18 @@ int main(void) {
         const char *name = !strcmp(configured_hotkey,"l3") ? "leftstick" :
                            !strcmp(configured_hotkey,"r3") ? "rightstick" : configured_hotkey;
         int mapped = SDL_GameControllerGetButtonFromString(name);
-        if (mapped >= 0) hotkey = mapped;
+        if (mapped >= 0 && mapped != 6) hotkey = mapped;
         else fprintf(stderr,"Unknown HOTKEY %s; using Guide and Select exit shortcuts\n", configured_hotkey);
     }
+    fprintf(stderr,"Controller display=%s, mapping=%s, exit=Guide/Select/button%d + Start\n",getenv("DISPLAY")?getenv("DISPLAY"):"unset",db?db:"unset",hotkey);
     const unsigned long keys[8] = {0,0,0x20,0xff1b,0xff0d,0xff09,0xff55,0xff56};
     signal(SIGTERM,stop); signal(SIGINT,stop);
     struct timespec tick = {0,16000000};
     int requested_exit = 0;
     while(running) {
         SDL_GameControllerUpdate();
-        if (pad && !SDL_GameControllerGetAttached(pad)) { SDL_GameControllerClose(pad); pad = NULL; }
-        if (!pad) for(int i=0;i<SDL_NumJoysticks();i++) if(SDL_IsGameController(i)) { pad=SDL_GameControllerOpen(i); if(pad) break; }
+        if (pad && !SDL_GameControllerGetAttached(pad)) { fputs("Controller disconnected\n",stderr); SDL_GameControllerClose(pad); pad = NULL; }
+        if (!pad) for(int i=0;i<SDL_NumJoysticks();i++) if(SDL_IsGameController(i)) { pad=SDL_GameControllerOpen(i); if(pad) {fputs("Controller connected\n",stderr);break;} }
         if(pad && SDL_GameControllerGetButton(pad,6) &&
            (SDL_GameControllerGetButton(pad,5) || SDL_GameControllerGetButton(pad,4) ||
             SDL_GameControllerGetButton(pad,hotkey))) { requested_exit=1; break; }

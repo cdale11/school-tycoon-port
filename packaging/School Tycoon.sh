@@ -4,7 +4,40 @@ set -eu
 ports_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 game_root="$ports_dir/school-tycoon"
 mkdir -p "$game_root/logs" "$game_root/runtime"
+# Retain one preceding attempt; rotate only launcher-owned log files.
+for log_name in launcher.txt game.txt game-weston.txt controls.txt; do
+    if [ -f "$game_root/logs/$log_name" ]; then
+        mv "$game_root/logs/$log_name" "$game_root/logs/$log_name.previous"
+    fi
+done
+# Retain bounded tails of the previous game's Wine output before the drainers open.
+for log_name in game-wine.txt game-wine.stdout.txt; do
+    if [ -f "$game_root/logs/$log_name" ]; then
+        tail -c 262144 "$game_root/logs/$log_name" > "$game_root/logs/$log_name.previous"
+    fi
+done
 exec > "$game_root/logs/launcher.txt" 2>&1
+printf 'Started: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+if [ -f "$game_root/debug.txt" ] && [ "$(cat "$game_root/debug.txt")" = 1 ]; then
+    export ST_DEBUG=1
+fi
+{
+    uname -a
+    getconf GNU_LIBC_VERSION || :
+    cat /etc/os-release 2>/dev/null || :
+    awk '/^(MemTotal|MemAvailable|SwapTotal|SwapFree|CmaTotal|CmaFree):/' /proc/meminfo
+    df -Pk "$game_root"
+    if [ -f "$game_root/gamedata/SchoolTycoon.exe" ]; then sha256sum "$game_root/gamedata/SchoolTycoon.exe"; fi
+    printf 'Runtime build: '; cat "$game_root/BUILD-ID.txt" 2>/dev/null || :
+    printf 'Debug: %s; CPU request: %s\n' "${ST_DEBUG:-0}" "${ST_CPU_MODE:-interpreter}"
+    ls -l /dev/mali0 /usr/lib/libEGL.so.1 /usr/lib/libGLESv2.so.2 /usr/lib/libSDL2-2.0.so.0 2>/dev/null || :
+} > "$game_root/logs/system.txt" 2>&1
+if [ -f "$game_root/SHA256SUMS" ]; then
+    (cd "$ports_dir"; sha256sum -c "$game_root/SHA256SUMS") || {
+        printf '%s\n' 'Package verification failed. Re-extract the complete package before launching.'
+        exit 1
+    }
+fi
 if [ "$(uname -m)" != aarch64 ]; then
     printf '%s\n' 'School Tycoon requires the ARM64 KNULLI handheld.'; exit 1
 fi

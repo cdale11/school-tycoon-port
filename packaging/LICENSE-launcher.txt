@@ -2,7 +2,7 @@ MIT License
 
 Copyright (c) 2026 School Tycoon port contributors
 
-Applies to the launcher scripts and st-controls helper in this package.
+Applies to the launcher scripts and all st-* native helpers in this package.
 Third-party runtimes and proprietary game assets retain their own licenses.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

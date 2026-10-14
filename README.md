@@ -1,96 +1,88 @@
 # School Tycoon for RG34XXSP
 
-An experimental launcher for the original School Tycoon (2004) on KNULLI Scarab.
-**A playable handheld port is not yet verified.** The ARM64 cloud VM has rendered
-the original intro, menus and Farmland school scene through the GLES bridge and
-written a save file. The latest source also reloads the saved scene with its
-character and trees. The corrected internal shader variants also passed a
-long initial-scene run: roughly 100 minutes near 687–690 MiB RSS with no repeated
-internal shader-link failures. The VM also placed a classroom, saved the changed school and reached Day 1.
-Fresh reload, fuller simulation and performance checks remain in progress.
-The VM uses software Mesa rather than the handheld's Mali driver, so these
-results do not certify handheld rendering or performance.
+A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
+with PortMaster. **This is a handheld release candidate. A playable port on the
+actual Mali device is not yet certified.**
 
-The handheld archives now include the VM-tested shader corrections, optimized
-Box64 interpreter, a two-arena heap limit, and Fn/Guide + Start exit handling.
-The optimized Box64 requires glibc 2.38 or newer (Scarab reports 2.40).
-The VM school scene used roughly 687–701 MiB RSS; Mali memory use and handheld
-speed remain unverified. Multithreaded rendering stays disabled because the
-bridge owns one graphics context. No save or prefix reset is required.
+## Download and use
 
-## Update an existing installation
+[Download school-tycoon-handheld.tar.gz](releases/school-tycoon-handheld.tar.gz).
+Stop the game and extract it into `/userdata/roms/ports/`, replacing included
+files. Keep existing game data, saves and the Wine prefix. The archive contains
+no proprietary game assets, saves, settings, prefix, emulator or diagnostic probes.
 
-Exit School Tycoon first. Extract
-[school-tycoon-runtime-update.tar.gz](releases/school-tycoon-runtime-update.tar.gz)
-into `/userdata/roms/ports/`, replacing the included launcher files, then launch
-School Tycoon again. The update includes no game assets, settings, saves or Wine
-prefix. It adds the native graphics helper and updates the launcher/installer. Missing-target
-links left by a removed probe folder are handled safely; a missing prefix link
-is preserved for recovery. Verified Wine downloads are cached, so an extraction
-failure does not require another network download. Interrupted prefix setup is
-completed before game startup, restoring missing builtin modules for both architectures and verifying a 32-bit Windows command.
+For a new installation, copy the contents of your original `ST` folder into
+`/userdata/roms/ports/school-tycoon/gamedata/`. `SchoolTycoon.exe` and `Data`
+must be directly inside it. Refresh the games list and launch **School Tycoon**
+under Ports. PortMaster must already be installed; allow 2 GiB free. Wine 10.0
+and Weston are reused where available. Otherwise Wine is downloaded once with
+checksum verification and the installed PortMaster Weston image is extracted.
+First prefix setup may take several minutes; subsequent launches reuse it.
+A temporary helper checks the private Wine desktop before game startup and exits
+when the original game window opens. Desktop failure/timeout is logged separately.
 
-## Install and launch
+D-pad moves the pointer; A/B click left/right; L1 gives precise movement; X is
+Space; Y is Escape; Start is Enter; R1 is Tab; L2/R2 are Page Up/Down.
+**Fn/Guide + Start exits; Select + Start is the fallback. Save first.**
+Physical Fn mapping and USB input on the handheld remain unverified.
 
-1. Extract [school-tycoon-play.tar.gz](releases/school-tycoon-play.tar.gz) into
-   `/userdata/roms/ports/`.
-2. Copy the contents of your original `ST` folder into
-   `/userdata/roms/ports/school-tycoon/gamedata/`, so `SchoolTycoon.exe` and `Data`
-   are directly inside it.
-3. Refresh the KNULLI games list and launch **School Tycoon** under Ports.
+Back up `school-tycoon/gamedata` and `school-tycoon/prefix-wine-10.0`, following
+links when applicable. Retain any old runtime-probe directory still targeted
+by prefix/runtime links. No reset is required. If you opted into experimental
+dynarec previously, remove `cpu-mode.txt` to use the stable interpreter default.
 
-Existing Wine/Weston installations and the test Wine prefix are reused when
-available. Otherwise the launcher downloads checksum-verified Wine 10.0 and
-extracts the installed PortMaster Weston image. Keep at least 2 GiB free.
-No diagnostic commands are required. First startup may take several minutes.
+## Memory and diagnostics
 
-D-pad moves the mouse; A/B click left/right; hold L1 for precision; X is Space,
-Y is Escape, Start is Enter, R1 is Tab, and L2/R2 are Page Up/Down.
-Fn/Guide + Start or Select + Start stops this game session. Save in-game before using that shortcut.
-A native SDL controller helper sends input to the private X display.
+The build includes optimized Box64, Cortex-A53-tuned native helpers, joined
+vertex shaders, uniform-array fixes and corrected internal shader sources.
+Heap arenas are limited to two; Wine rendering stays in the bridge's single
+graphics context. The handheld uses native Mali EGL/GLES, with no software Mesa
+bundled. Forced multithreaded rendering and the unverified CPU recompiler are
+not enabled by default. Select Low detail and 800x600 in-game when available.
 
-Game files, settings and game-directory saves remain in `school-tycoon/gamedata`.
-Windows user data remains in `school-tycoon/prefix-wine-10.0`, which can be a link
-to the earlier diagnostic prefix. Back up both and keep any linked directory.
-Logs are captured automatically in `school-tycoon/logs`.
-See [installation and controls](packaging/PLAY-README.txt) for details.
+`school-tycoon/logs/` contains firmware/build identity, launch phases, controller
+connection, process exit status, display logs, bounded Wine output and the last
+hour of memory samples. Each Wine output segment is limited to 256 KiB, retaining
+one previous segment. Put `1` in `school-tycoon/debug.txt` for additional graphics
+warnings and CPU/library startup details, then remove it to return to normal logging. Send the whole logs directory
+when reporting a failure. No logging can anticipate or identify every fault.
 
-## What is verified
+[Full installation, controls and troubleshooting](packaging/PLAY-README.txt).
+[Archive checksums](releases/SHA256SUMS). Earlier diagnostic archives are legacy;
+use the handheld archive for the current game build.
 
-- Handheld: Box64 CPU execution, Wine 10.0 Windows commands in interpreter mode,
-  native Mali EGL/GLES pixel rendering, and a Windows GDI window.
-- Cloud: controller movement/clicks/release/exit using real SDL virtual input and
-  X11; launcher command, working directory, exit status and owned-process cleanup
-  using stand-in runtimes; ARM64 helper build (glibc 2.34 maximum requirement).
-  Full-system ARM64 VM: original intro, menus and school scene using desktop
-  software Mesa; GL4ES/GLES Direct3D 8 rendering probe with the new helper.
-- **Failed on handheld:** GL4ES could not create its SDL/Mali window; Core4ES
-  lacked `glAccum`, causing Wine to disable OpenGL. Both failed Direct3DCreate8.
-- **Unverified:** early EGL initialization on Mali, game rendering, sound,
-  saves, physical controls and usable performance. A cloud attempt to run the
-  original 32-bit executable under native Wine 10.0 exited with segmentation
-  fault; it does not supply a successful gameplay baseline.
+## Evidence and remaining limits
 
-Interpreter mode is the only CPU baseline that passed on the handheld and can
-be extremely slow. An optional conservative dynarec mode is included, but earlier
-recompiler runs ended with status 137 for an unresolved reason. Weston also has
-an unresolved teardown assertion. These are material remaining porting blockers.
+- Actual handheld, earlier tests: Box64 execution, Wine interpreter Windows
+  commands, native Mali EGL/GLES pixels and a Windows GDI window. Earlier
+  Direct3D game startup failed; the current graphics fixes have not been
+  confirmed on Mali.
+- ARM64 VM: original intro/menus, classroom placement and save, Day 3 with
+  eight students. Sustained scene runs stayed around 688–701 MiB game RSS with
+  no process swap. This is not total device memory or a Mali memory estimate.
+- Integration checks: controller motion/clicks/input release/Fn exit, launcher
+  working directory and owned-process cleanup, Wine cache recovery, prefix
+  preservation, bounded logging, ELF architecture and package checksums.
+- Unverified on handheld: rendering/scaling, sound, physical controls and
+  playable speed. Interpreter emulation can be slow. Dynarec previously exited
+  137, and Weston has shown a teardown assertion.
+
+The VM matches Cortex-A53, four cores, ARM64, 4 KiB pages, 39-bit address space,
+4.9.170 kernel and approximately the reported RAM/swap. It substitutes a virtual
+board and software graphics. QEMU cannot reproduce H700/Mali-G31, its closed
+driver, panel, audio or buttons; this is not a complete or 1:1 handheld emulator.
 
 ## Development
 
-- [Handheld build and memory settings](docs/handheld-build.md)
-- [ARM64 VM tests and limitations](docs/emulator.md)
+- [Final package validation and limits](docs/final-validation.md)
+- [Build inputs, package contents and memory settings](docs/handheld-build.md)
+- [ARM64 VM fixtures and limitations](docs/emulator.md)
 - [Runtime findings](docs/target-runtime.md)
 - [Executable assessment](docs/executable-assessment.md)
 - [Earlier diagnostics](docs/diagnostic-history.md)
-- [Controller source](tools/st-controls.c)
-- [EGL bridge helper](tools/st-egl-prime.c)
-- [Session launcher](tools/test-window.sh)
 
-Run `python3 tests/launcher-integration.py` for session orchestration checks.
-For controls, compile `cc -shared -fPIC tools/st-controls.c -ldl -o /tmp/st-controls.so`
-and run `DISPLAY=:93 python3 tests/controls-integration.py /tmp/st-controls.so`
-with Xvfb on display 93 and native SDL2, X11 and Xtst libraries installed.
-The source is compiled for ARM64 using the existing GCC 14 cross toolchain.
-
-No original game executable or assets are distributed in this repository.
+`tools/build-handheld.py` builds the asset-free archive from pinned runtime inputs
+and the ARM64 cross compiler. See the build document for arguments. Run
+`python3 tests/launcher-integration.py`, `python3 tests/log-integration.py`, `python3 tests/entry-integration.py`,
+`python3 tests/prefix-repair-integration.py` and the documented native/VM probes.
+The repository does not distribute the original executable or game assets.
