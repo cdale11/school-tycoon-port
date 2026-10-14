@@ -63,12 +63,13 @@ void st_glLinkProgram(unsigned program) {
     int count = 0;
     if (!available) { link_program(program); return; }
     get_program(program, 0x8b85, &count); /* GL_ATTACHED_SHADERS */
-    if (count < 2 || count > 8) { link_program(program); return; }
+    int total=count;
     unsigned shaders[8], main_id = 0, output_id = 0;
     char *main_source = NULL, *output_source = NULL;
     int vertices = 0;
     get_attached(program, 8, &count, shaders);
     st_source_before_link(program, count, shaders);
+    if(total<2 || total>8) {link_program(program);return;}
     for (int i = 0; i < count; i++) {
         int type = 0, length = 0;
         get_shader(shaders[i], 0x8b4f, &type); /* GL_SHADER_TYPE */

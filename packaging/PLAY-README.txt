@@ -16,6 +16,8 @@ cached. The PortMaster Weston runtime is extracted locally. First prefix setup
 may take several minutes. GUI desktop readiness allows up to 180 seconds and
 blocks game launch on failure. Its helper exits when the game window appears.
 Logs identify setup, readiness and game launch phases.
+Concurrent launches are rejected automatically; no lock file deletion is needed.
+A controller-helper failure stops the game and is recorded in controls/game logs.
 This is a compatibility launcher for the original game, not a rewritten engine.
 
 CONTROLS

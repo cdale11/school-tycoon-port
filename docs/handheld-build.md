@@ -88,3 +88,17 @@ substitutes software GLES and two X displays, and keeps its output separate.
 The fixture uses the packaged temporary desktop helper. This does not exercise
 KNULLI's physical display launch path or remove the need for device validation.
 See `docs/emulator.md` for the prepared guest and unsupported hardware.
+
+## Audit hardening
+
+The native `st-lock` helper acquires a process-owned kernel lock before log
+rotation or Wine setup. Concurrent launchers are rejected; crashes release the
+lock without stale PID cleanup, and forked children do not retain it. Child
+shutdown checks PID creation times and bounds TERM/KILL waits. A failed controller
+helper stops the session so the documented exit shortcut remains dependable.
+
+Shader source switching uses revision IDs instead of retaining a second source
+copy per shader. Pending-deleted shaders are reclaimed after final program
+destruction, and reused IDs invalidate stale entries. Package integrity checks
+remain active under Python optimization. Release output is written to a temporary
+file and replaced atomically only after a successful build.

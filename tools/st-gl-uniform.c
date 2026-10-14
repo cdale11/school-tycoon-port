@@ -6,8 +6,9 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
-struct array { int base, size; struct array *next; };
+struct array { int *locations, size; struct array *next; };
 struct program { unsigned id; struct array *arrays; struct program *next; };
 static struct program *programs;
 static pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -19,6 +20,7 @@ static void (*native_uniform)(unsigned, unsigned, int, int *, int *, unsigned *,
 static void (*desktop_vector)(int, int, const float *);
 static void (*desktop_matrix)(int, int, unsigned char, const float *);
 static void (*desktop_delete)(unsigned);
+static unsigned char (*desktop_is_program)(unsigned);
 static int available;
 void st_source_program_deleted(unsigned);
 
@@ -33,6 +35,7 @@ static void load(void) {
     LOAD(desktop, desktop_vector, "glUniform4fv");
     LOAD(desktop, desktop_matrix, "glUniformMatrix4fv");
     LOAD(desktop, desktop_delete, "glDeleteProgram");
+    LOAD(desktop, desktop_is_program, "glIsProgram");
     LOAD(native, native_location, "glGetUniformLocation");
     LOAD(native, native_program, "glGetProgramiv");
     LOAD(native, native_uniform, "glGetActiveUniform");
@@ -49,7 +52,7 @@ static void forget(unsigned id) {
     while (old->arrays) {
         struct array *a = old->arrays;
         old->arrays = a->next;
-        free(a);
+        free(a->locations);free(a);
     }
     free(old);
 }
@@ -65,19 +68,28 @@ void st_uniform_linked(unsigned id) {
     native_program(id, 0x8b86, &count);
     native_program(id, 0x8b87, &max_name);
     if (max_name <= 0 || max_name > 1048576) { pthread_mutex_unlock(&cache_lock); return; }
-    char *name = malloc((size_t)max_name);
+    char *name = malloc((size_t)max_name+24);
     struct program *p = calloc(1, sizeof(*p));
     if (!name || !p) { free(name); free(p); pthread_mutex_unlock(&cache_lock); return; }
     p->id = id; p->next = programs; programs = p;
     for (int i = 0; i < count; i++) {
         int length = 0, size = 0; unsigned type = 0;
         native_uniform(id, (unsigned)i, max_name, &length, &size, &type, name);
-        if (length <= 0 || name[length - 1] != ']' || size <= 0) continue;
-        int base = native_location(id, name);
-        if (base < 0) continue;
-        struct array *a = malloc(sizeof(*a));
-        if (!a) continue;
-        a->base = base; a->size = size; a->next = p->arrays; p->arrays = a;
+        if(length<=0 || length>=max_name || name[length-1]!=']' || size<=0 || size>65536)continue;
+        char *bracket=strrchr(name,'[');
+        if(!bracket || strcmp(bracket,"[0]"))continue;
+        struct array *a=calloc(1,sizeof(*a));
+        if(!a)continue;
+        a->locations=malloc((size_t)size*sizeof(*a->locations));
+        if(!a->locations){free(a);continue;}
+        a->size=size;
+        // GL locations are opaque: inactive element zero and gaps are legal.
+        size_t prefix=(size_t)(bracket-name);
+        for(int element=0;element<size;element++) {
+            snprintf(name+prefix,(size_t)max_name+24-prefix,"[%d]",element);
+            a->locations[element]=native_location(id,name);
+        }
+        a->next=p->arrays;p->arrays=a;
     }
     free(name);
     pthread_mutex_unlock(&cache_lock);
@@ -98,11 +110,11 @@ static int array_count(int location, int count) {
     desktop_get(0x8b8d, &id); /* GL_CURRENT_PROGRAM */
     pthread_mutex_lock(&cache_lock);
     for (struct program *p = programs; p; p = p->next) if (p->id == (unsigned)id) {
-        for (struct array *a = p->arrays; a; a = a->next)
-            if (location >= a->base && location - a->base < a->size) {
-                int remaining = a->size - (location - a->base);
-                if (count > remaining) count = remaining;
-                break;
+        for(struct array *a=p->arrays;a;a=a->next)
+            for(int element=0;element<a->size;element++) if(a->locations[element]==location) {
+                int remaining=a->size-element;
+                if(count>remaining)count=remaining;
+                pthread_mutex_unlock(&cache_lock);return count;
             }
         break;
     }
@@ -125,7 +137,8 @@ void st_glUniformMatrix4fv(int location, int count, unsigned char transpose, con
 void st_glDeleteProgram(unsigned id) {
     pthread_once(&symbols_once, load);
     if (!desktop_delete) abort();
+    int valid=desktop_is_program && desktop_is_program(id);
     desktop_delete(id);
-    st_source_program_deleted(id);
+    if(valid)st_source_program_deleted(id);
     pthread_mutex_lock(&cache_lock); forget(id); pthread_mutex_unlock(&cache_lock);
 }

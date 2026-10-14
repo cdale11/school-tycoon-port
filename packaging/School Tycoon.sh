@@ -4,6 +4,12 @@ set -eu
 ports_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 game_root="$ports_dir/school-tycoon"
 mkdir -p "$game_root/logs" "$game_root/runtime"
+# Lock before rotating logs or touching Wine/prefix state. Kernel releases it
+# on launcher death; forked children do not inherit POSIX lock ownership.
+if [ "${ST_SESSION_LOCKED:-}" != "$$" ]; then
+    test -x "$game_root/st-lock" || { printf '%s\n' 'Missing session helper; extract the complete handheld package.' >&2; exit 1; }
+    exec "$game_root/st-lock" "$game_root/.session.lock" sh "$0" "$@"
+fi
 # Retain one preceding attempt; rotate only launcher-owned log files.
 for log_name in launcher.txt game.txt game-weston.txt controls.txt; do
     if [ -f "$game_root/logs/$log_name" ]; then

@@ -58,6 +58,18 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
     assert 'Controller exit shortcut requested exit.' in (root/'logs/game.txt').read_text()
     assert (root/'game-stopped').exists(), 'Owned game was not stopped'
     assert not list((root/'logs').glob('.pipes.*')), 'Shortcut leaked logger FIFOs'
+    # A child ignoring TERM cannot hold cleanup forever; escalation is owned.
+    script(root/'st-controls', '#!/bin/sh\ntrap "" TERM\nwhile :; do sleep 0.1; done\n')
+    script(root/'box64',box_source.replace('while True: time.sleep(0.1)','sys.exit(7)'))
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=10)
+    assert result.returncode==7, 'Stubborn controller blocked failure cleanup'
+    assert not list((root/'logs').glob('.pipes.*'))
+    # Broken controls stop an otherwise live game instead of waiting forever.
+    script(root/'st-controls', '#!/bin/sh\nsleep 0.2\nexit 1\n')
+    script(root/'box64',box_source)
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=10)
+    assert result.returncode==1
+    assert 'Controller helper unavailable' in (root/'logs/game.txt').read_text()
     # A desktop helper failure must stop before starting the original game.
     (root/'observed.json').unlink()
     broken=(root/'box64').read_text()

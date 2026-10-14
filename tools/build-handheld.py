@@ -4,6 +4,7 @@ import argparse
 import gzip
 import hashlib
 import io
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -20,14 +21,16 @@ p.add_argument('--output-dir',type=Path,default=Path('releases'))
 a=p.parse_args(); repo=Path(__file__).resolve().parents[1]
 sha=lambda b:hashlib.sha256(b).hexdigest()
 expected='fdf6581debf39fcdea490f9a36e7b7578b2687531ed2dc2e910ddeed09f51de8'
-assert sha(a.box64.read_bytes())==expected,'Unexpected upstream Box64 build'
+if sha(a.box64.read_bytes())!=expected:raise SystemExit('Unexpected upstream Box64 build')
 with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
  root=Path(temporary); game=root/'school-tycoon'; graphics=game/'runtime/graphics';graphics.mkdir(parents=True)
  needed=['BOX64-LICENSE','runtime/x86_64/GCC-COPYRIGHT','runtime/x86_64/PROVENANCE.txt','runtime/x86_64/GPL-3','runtime/x86_64/libgcc_s.so.1']
  with tarfile.open(a.runtime_base) as base:
   for name in needed:
-   dest=game/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(base.extractfile('school-tycoon/'+name).read())
- assert sha((game/'runtime/x86_64/libgcc_s.so.1').read_bytes())=='30c61ab012a4241bed033725a09b61f5fdd3bb7df95ee852d0b096520524c7af'
+   member=base.getmember('school-tycoon/'+name)
+   if not member.isfile() or member.size>2097152:raise SystemExit('Invalid runtime input: '+name)
+   dest=game/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(base.extractfile(member).read())
+ if sha((game/'runtime/x86_64/libgcc_s.so.1').read_bytes())!='30c61ab012a4241bed033725a09b61f5fdd3bb7df95ee852d0b096520524c7af':raise SystemExit('Unexpected libgcc support library')
  shutil.copyfile(a.box64,game/'box64')
  flags=[a.cc,'--sysroot='+a.sysroot,'-Wall','-Wextra','-Werror','-O2','-mtune=cortex-a53']
  def compile(output,sources,shared=False):
@@ -38,8 +41,9 @@ with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
  compile(graphics/'libst-egl-prime.so',['st-egl-prime.c'],True)
  compile(game/'st-controls',['st-controls.c'])
  compile(game/'st-log',['st-log.c'])
+ compile(game/'st-lock',['st-lock.c'])
  subprocess.run([a.mingw,'-Wall','-Wextra','-Werror','-Os','-nostdlib','-mwindows','-Wl,-e,_desktop_start','-Wl,--no-insert-timestamp',str(repo/'tools/st-desktop-ready.c'),'-lkernel32','-luser32','-o',str(game/'st-desktop-ready.exe')],check=True)
- for binary in [game/'box64',game/'st-controls',game/'st-log',*graphics.glob('*.so')]:
+ for binary in [game/'box64',game/'st-controls',game/'st-log',game/'st-lock',*graphics.glob('*.so')]:
   subprocess.run([a.strip,'--strip-unneeded',str(binary)],check=True);binary.chmod(0o755)
  for source,target in [('tools/run-game.sh','school-tycoon/run-game.sh'),('tools/sample-session.sh','school-tycoon/sample-session.sh'),('tools/prepare-wine.sh','school-tycoon/prepare-wine.sh'),('tools/prepare-prefix.sh','school-tycoon/prepare-prefix.sh'),('packaging/School Tycoon.sh','School Tycoon.sh'),('packaging/PLAY-README.txt','PLAY-README.txt'),('packaging/LICENSE-launcher.txt','school-tycoon/LICENSE-launcher.txt')]:
   shutil.copyfile(repo/source,root/target)
@@ -51,10 +55,19 @@ with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
  (game/'SHA256SUMS').write_text(''.join(sha(f.read_bytes())+'  '+str(f.relative_to(root))+'\n' for f in files))
  (game/'gamedata').mkdir()
  a.output_dir.mkdir(parents=True,exist_ok=True); archive=a.output_dir/'school-tycoon-handheld.tar.gz'
- with archive.open('wb') as out,gzip.GzipFile(fileobj=out,mode='wb',mtime=0) as gz,tarfile.open(fileobj=gz,mode='w') as tar:
-  for f in sorted(root.rglob('*')):
-   info=tar.gettarinfo(str(f),arcname=str(f.relative_to(root)))
-   info.uid=info.gid=0;info.uname=info.gname='';info.mtime=0
-   info.mode=0o755 if f.is_dir() or f.suffix in ('.sh','.so') or f.name in ('box64','st-controls','st-log') else 0o644
-   tar.addfile(info,io.BytesIO(f.read_bytes()) if f.is_file() else None)
+ # Publish only a complete archive; preserve the preceding release on failure.
+ temporary_archive=None
+ try:
+  with tempfile.NamedTemporaryFile(dir=a.output_dir,prefix='.handheld-',delete=False) as out:
+   temporary_archive=Path(out.name)
+   with gzip.GzipFile(filename='',fileobj=out,mode='wb',mtime=0) as gz,tarfile.open(fileobj=gz,mode='w') as tar:
+    for f in sorted(root.rglob('*')):
+     info=tar.gettarinfo(str(f),arcname=str(f.relative_to(root)))
+     info.uid=info.gid=0;info.uname=info.gname='';info.mtime=0
+     info.mode=0o755 if f.is_dir() or f.suffix in ('.sh','.so') or f.name in ('box64','st-controls','st-log','st-lock') else 0o644
+     tar.addfile(info,io.BytesIO(f.read_bytes()) if f.is_file() else None)
+  temporary_archive.chmod(0o644)
+  os.replace(temporary_archive,archive)
+ finally:
+  if temporary_archive and temporary_archive.exists():temporary_archive.unlink()
  print(str(archive),archive.stat().st_size,'bytes',sha(archive.read_bytes()))

@@ -11,8 +11,6 @@
 #include <unistd.h>
 
 static void *egl_library;
-static void *egl_display;
-static unsigned (*terminate_egl)(void *);
 static void fail_early(void) { fflush(stderr); _exit(1); }
 static int matching_target(void) {
     const char *target=getenv("ST_EGL_TARGET");
@@ -52,8 +50,7 @@ __attribute__((constructor)) static void prime_egl(void) {
     void *(*get_display)(void *)=dlsym(egl_library,"eglGetDisplay");
     unsigned (*initialize)(void *,int *,int *)=dlsym(egl_library,"eglInitialize");
     unsigned (*get_error)(void)=dlsym(egl_library,"eglGetError");
-    terminate_egl=dlsym(egl_library,"eglTerminate");
-    if(!get_display || !initialize || !get_error || !terminate_egl) {
+    if(!get_display || !initialize || !get_error) {
         fputs("ST graphics: native EGL entry points missing\n",stderr); fail_early();
     }
     void *display=get_display(NULL);
@@ -61,10 +58,8 @@ __attribute__((constructor)) static void prime_egl(void) {
     if(!display || !initialize(display,&major,&minor)) {
         fprintf(stderr,"ST graphics: early EGL initialization failed (0x%x)\n",get_error()); fail_early();
     }
-    egl_display=display;
     fprintf(stderr,"ST graphics: EGL %d.%d initialized before Windows mappings\n",major,minor);
 }
-__attribute__((destructor)) static void release_egl(void) {
-    if(egl_display && terminate_egl) terminate_egl(egl_display);
-    if(egl_library) dlclose(egl_library);
-}
+/* EGLInitialize is not reference-counted. SDL owns graphics teardown; early
+ * priming must not terminate its shared display during DSO destruction. Keep
+ * our library reference for process lifetime, reclaimed by the OS at exit. */

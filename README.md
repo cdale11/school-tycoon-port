@@ -86,3 +86,8 @@ and the ARM64 cross compiler. See the build document for arguments. Run
 `python3 tests/launcher-integration.py`, `python3 tests/log-integration.py`, `python3 tests/entry-integration.py`,
 `python3 tests/prefix-repair-integration.py` and the documented native/VM probes.
 The repository does not distribute the original executable or game assets.
+
+The subsequent [code audit](docs/code-audit.md) fixes shader-cache retention,
+EGL ownership, shutdown and concurrent-launch handling. Historical diagnostic
+archives remain available in Git history; the current release directory contains
+the handheld package and compatibility aliases.

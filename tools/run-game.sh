@@ -78,13 +78,46 @@ cat > "$window_root/runtime/window-weston.ini" <<'EOF'
 idle-time=0
 EOF
 weston_pid=
+weston_birth=
 controls_pid=
+controls_birth=
 desktop_pid=
+desktop_birth=
 telemetry_pid=
+telemetry_birth=
 stdout_pid=
+stdout_birth=
 stderr_pid=
+stderr_birth=
 pipe_dir=
 game_pid=
+game_birth=
+child_start() {
+    awk '{sub(/^.*\) /, ""); print $20}' "/proc/$1/stat" 2>/dev/null || :
+}
+child_alive() {
+    [ -n "$1" ] && [ -n "$2" ] && [ "$(child_start "$1")" = "$2" ]
+}
+# Stop only our captured children; do not block indefinitely on stuck IO.
+stop_child() {
+    child_pid=$1; child_birth=$2
+    child_alive "$child_pid" "$child_birth" || return 0
+    kill "$child_pid" 2>/dev/null || :
+    child_stop_start=$(date +%s)
+    while child_alive "$child_pid" "$child_birth"; do
+        if [ "$(($(date +%s)-child_stop_start))" -ge 2 ]; then
+            kill -KILL "$child_pid" 2>/dev/null || :
+            sleep 0.1
+            break
+        fi
+        sleep 0.05
+    done
+    if child_alive "$child_pid" "$child_birth"; then
+        printf 'Child %s remains blocked after SIGKILL; continuing cleanup.\n' "$child_pid"
+    else
+        wait "$child_pid" 2>/dev/null || :
+    fi
+}
 cleanup_window() {
     cleanup_status=$?
     trap - EXIT HUP INT TERM
@@ -92,29 +125,17 @@ cleanup_window() {
     if [ "$cleanup_status" -ge 128 ]; then
         dmesg 2>/dev/null | tail -n 80 > "$window_root/logs/kernel.txt" || :
     fi
-    if [ -n "$telemetry_pid" ]; then kill "$telemetry_pid" 2>/dev/null || :; wait "$telemetry_pid" 2>/dev/null || :; fi
-    if [ -n "$desktop_pid" ]; then kill "$desktop_pid" 2>/dev/null || :; wait "$desktop_pid" 2>/dev/null || :; fi
-    if [ -n "$controls_pid" ]; then kill "$controls_pid" 2>/dev/null || :; wait "$controls_pid" 2>/dev/null || :; fi
-    if [ -n "$game_pid" ]; then kill "$game_pid" 2>/dev/null || :; fi
-    if [ -n "$weston_pid" ]; then
-        kill "$weston_pid" 2>/dev/null || :
-        window_cleanup_start=$(date +%s)
-        while kill -0 "$weston_pid" 2>/dev/null; do
-            if [ "$(($(date +%s) - window_cleanup_start))" -ge 5 ]; then
-                kill -KILL "$weston_pid" 2>/dev/null || :
-                break
-            fi
-            sleep 0.2
-        done
-        wait "$weston_pid" 2>/dev/null || :
-    fi
+    stop_child "$telemetry_pid" "$telemetry_birth"
+    stop_child "$desktop_pid" "$desktop_birth"
+    stop_child "$controls_pid" "$controls_birth"
+    stop_child "$game_pid" "$game_birth"
     BOX64_LOG=0 timeout -s TERM -k 5s 15s "$window_root/box64" "$wine_dir/bin/wineserver" -k || :
-    for log_pid in "$stdout_pid" "$stderr_pid"; do
-        if [ -n "$log_pid" ]; then kill "$log_pid" 2>/dev/null || :; wait "$log_pid" 2>/dev/null || :; fi
-    done
+    stop_child "$stdout_pid" "$stdout_birth"
+    stop_child "$stderr_pid" "$stderr_birth"
+    stop_child "$weston_pid" "$weston_birth"
     if [ -n "$pipe_dir" ]; then rm -f "$pipe_dir/stdout" "$pipe_dir/stderr"; rmdir "$pipe_dir" || :; fi
-
 }
+
 export WINEPREFIX="$window_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 # Bound glibc heap arenas on the 1 GiB handheld; rendering stays single-context.
@@ -133,10 +154,10 @@ printf '%s\n' 'Phase: display-start'
     exec ./wp_weston -c "$window_root/runtime/window-weston.ini" -B headless \
         --use-pixman --shell=kiosk-shell.so -i0 -Sschool-tycoon-window --xwayland
 ) > "$window_root/logs/$window_log-weston.txt" 2>&1 &
-weston_pid=$!
+weston_pid=$!; weston_birth=$(child_start "$weston_pid")
 window_wait_start=$(date +%s)
 while [ ! -S /tmp/.X11-unix/X0 ]; do
-    if ! kill -0 "$weston_pid" 2>/dev/null || [ "$(($(date +%s) - window_wait_start))" -ge 30 ]; then
+    if ! child_alive "$weston_pid" "$weston_birth" || [ "$(($(date +%s) - window_wait_start))" -ge 30 ]; then
         printf 'Weston/Xwayland did not become ready. See %s-weston.txt.\n' "$window_log"
         cat "$window_root/logs/$window_log-weston.txt"
         exit 1
@@ -145,11 +166,9 @@ while [ ! -S /tmp/.X11-unix/X0 ]; do
 done
 export DISPLAY=:0 WAYLAND_DISPLAY=school-tycoon-window
 # Repair Wine/RpcSs in the verified private X11 session, before Crusty.
-if [ "$window_mode" = game ]; then
-    session_phase=prefix-readiness
-    printf '%s\n' 'Phase: prefix-readiness'
-    sh "$window_root/prepare-prefix.sh"
-fi
+session_phase=prefix-readiness
+printf '%s\n' 'Phase: prefix-readiness'
+sh "$window_root/prepare-prefix.sh"
 # Verify the actual private X11 desktop, not just a headless cmd.exe.
 # The helper exits after the original game window appears, reclaiming its memory.
 session_phase=desktop-readiness
@@ -160,11 +179,11 @@ test -f "$window_root/st-desktop-ready.exe"
     cd "$window_root/logs"
     exec "$window_root/box64" "$wine_dir/bin/wine" "$window_root/st-desktop-ready.exe"
 ) > "$window_root/logs/desktop.txt" 2>&1 &
-desktop_pid=$!
+desktop_pid=$!; desktop_birth=$(child_start "$desktop_pid")
 desktop_start=$(date +%s)
 while ! grep -q '^ST-DESKTOP-READY' "$window_root/logs/desktop-ready.txt" 2>/dev/null; do
-    if ! kill -0 "$desktop_pid" 2>/dev/null || [ "$(($(date +%s) - desktop_start))" -ge 180 ]; then
-        if ! kill -0 "$desktop_pid" 2>/dev/null; then
+    if ! child_alive "$desktop_pid" "$desktop_birth" || [ "$(($(date +%s) - desktop_start))" -ge 180 ]; then
+        if ! child_alive "$desktop_pid" "$desktop_birth"; then
             if wait "$desktop_pid"; then desktop_status=0; else desktop_status=$?; fi
             desktop_pid=
             printf 'Desktop helper exited before readiness: %s\n' "$desktop_status"
@@ -175,102 +194,89 @@ while ! grep -q '^ST-DESKTOP-READY' "$window_root/logs/desktop-ready.txt" 2>/dev
     sleep 0.2
 done
 printf '%s\n' 'Private Wine desktop is ready.'
-window_app_libpath="$LD_LIBRARY_PATH"
-window_app_preload=
-if [ "$window_mode" != gdi ]; then
-    window_gl=gl4es_glxpass
-    if [ "$window_mode" = core4es ]; then window_gl=core4es_glxpass; fi
-    window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
-    test -f "$window_root/runtime/graphics/libst-egl-prime.so"
-    test -f "$window_root/runtime/graphics/libst-glx-config.so"
-    export ST_CRUSTY_LIBRARY="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
-    window_app_preload="$window_root/runtime/graphics/libst-glx-config.so:$window_root/runtime/graphics/libst-egl-prime.so:$ST_CRUSTY_LIBRARY"
-    window_gles=20
-    if [ "$window_gl" = gl4es_glxpass ]; then
-        test -f "$window_root/runtime/graphics/libst-gl-present.so"
-        window_app_preload="$window_root/runtime/graphics/libst-gl-present.so:$window_app_preload"
-        window_gles=30
-        # Crusty supplies one native context rather than GLX context switching.
-        export WINE_D3D_CONFIG=csmt=0 LIBGL_NOTEXARRAY=1
-    fi
-    if [ "$window_mode" = game ]; then
-        export ST_EGL_TARGET=SchoolTycoon.exe
-    else
-        export ST_EGL_TARGET=windows-d3d8-probe.exe
-    fi
-    export CRUSTY_LIBEGL=/usr/lib/libEGL.so.1
-    export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
-    export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window
-    export SDL_VIDEODRIVER=mali
-    # Request ES3 explicitly for native framebuffer copies, while GL4ES uses
-    # its ES2 translation backend. Keep native library resolution explicit.
-    # These are native ARM libraries, never x86 copies from Wine.
-    export CRUSTY_GLES="$window_gles" SDL_OPENGL_ES_DRIVER=1
-    export SDL_VIDEO_EGL_DRIVER=/usr/lib/libEGL.so.1
-    export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
-    # Box64 otherwise inherits SDL_VIDEO_GL_DRIVER as its desktop libGL.
-    # Wine needs GL4ES's OpenGL/GLX exports; SDL itself needs native GLES.
-    export BOX64_LIBGL="$weston_dir/lib_aarch64/graphics/$window_gl/libGL.so.1"
-    export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
-    export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
-    export WINEDEBUG='err+all'
-    if [ "${ST_DEBUG:-0}" = 1 ]; then
-        export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'
-    fi
+session_phase=graphics-configuration
+window_gl=gl4es_glxpass
+window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
+test -f "$window_root/runtime/graphics/libst-egl-prime.so"
+test -f "$window_root/runtime/graphics/libst-glx-config.so"
+export ST_CRUSTY_LIBRARY="$weston_dir/lib_aarch64/graphics/crusty_glx/libcrusty.so"
+window_app_preload="$window_root/runtime/graphics/libst-glx-config.so:$window_root/runtime/graphics/libst-egl-prime.so:$ST_CRUSTY_LIBRARY"
+    test -f "$window_root/runtime/graphics/libst-gl-present.so"
+    window_app_preload="$window_root/runtime/graphics/libst-gl-present.so:$window_app_preload"
+    window_gles=30
+    # Crusty supplies one native context rather than GLX context switching.
+    export WINE_D3D_CONFIG=csmt=0 LIBGL_NOTEXARRAY=1
+export ST_EGL_TARGET=SchoolTycoon.exe
+export CRUSTY_LIBEGL=/usr/lib/libEGL.so.1
+export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0
+export CRUSTY_GL4ES=1 CRUSTY_WLMODE=0 CRUSTY_WLDISP=school-tycoon-window
+export SDL_VIDEODRIVER=mali
+# Request ES3 explicitly for native framebuffer copies, while GL4ES uses
+# its ES2 translation backend. Keep native library resolution explicit.
+# These are native ARM libraries, never x86 copies from Wine.
+export CRUSTY_GLES="$window_gles" SDL_OPENGL_ES_DRIVER=1
+export SDL_VIDEO_EGL_DRIVER=/usr/lib/libEGL.so.1
+export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
+# Box64 otherwise inherits SDL_VIDEO_GL_DRIVER as its desktop libGL.
+# Wine needs GL4ES's OpenGL/GLX exports; SDL itself needs native GLES.
+export BOX64_LIBGL="$weston_dir/lib_aarch64/graphics/$window_gl/libGL.so.1"
+export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
+export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
+export WINEDEBUG='err+all'
+if [ "${ST_DEBUG:-0}" = 1 ]; then
+    export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'
 fi
 # Full game runs without a diagnostic timeout, from its asset directory.
-if [ "$window_mode" = game ]; then
-    case "${ST_CPU_MODE:-interpreter}" in
-        interpreter) export BOX64_DYNAREC=0 ;;
-        dynarec)
-            export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
-            export BOX64_DYNAREC_FORWARD=0 BOX64_DYNAREC_STRONGMEM=2
-            export BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0 ;;
-        *) printf '%s\n' 'Invalid ST_CPU_MODE'; exit 2 ;;
-    esac
-    if [ "${ST_DEBUG:-0}" = 1 ]; then export BOX64_LOG=1; fi
-    session_phase=game
-    printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-interpreter}"
-    printf '%s\n' 'Graphics configuration is experimental; this is not a verified playable port.'
-    export SDL_GAMECONTROLLERCONFIG_FILE="${SDL_GAMECONTROLLERCONFIG_FILE:-/userdata/system/.local/share/PortMaster/knulli/gamecontrollerdb.txt}"
-    LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &
-    controls_pid=$!
-    test -x "$window_root/st-log"
-    pipe_dir=$(mktemp -d "$window_root/logs/.pipes.XXXXXX")
-    mkfifo "$pipe_dir/stdout" "$pipe_dir/stderr"
-    "$window_root/st-log" "$window_root/logs/game-wine.stdout.txt" < "$pipe_dir/stdout" & stdout_pid=$!
-    "$window_root/st-log" "$window_root/logs/game-wine.txt" < "$pipe_dir/stderr" & stderr_pid=$!
-    cd "$window_root/gamedata"
-    env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
-        "$window_root/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe \
-        > "$pipe_dir/stdout" 2> "$pipe_dir/stderr" &
-    game_pid=$!
-    printf 'Game PID: %s; heap arenas: %s; csmt=0; debug=%s\n' "$game_pid" "$MALLOC_ARENA_MAX" "${ST_DEBUG:-0}"
-    sh "$window_root/sample-session.sh" "$game_pid" "$window_root/logs/memory.csv" & telemetry_pid=$!
-    while kill -0 "$game_pid" 2>/dev/null; do
-        if [ -n "$desktop_pid" ] && ! kill -0 "$desktop_pid" 2>/dev/null; then
-            if wait "$desktop_pid"; then
-                printf '%s\n' 'Desktop readiness helper retired after game window creation.'
-            else
-                printf '%s\n' 'Desktop readiness helper ended unexpectedly; see desktop.txt.'
-            fi
-            desktop_pid=
+case "${ST_CPU_MODE:-interpreter}" in
+    interpreter) export BOX64_DYNAREC=0 ;;
+    dynarec)
+        export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
+        export BOX64_DYNAREC_FORWARD=0 BOX64_DYNAREC_STRONGMEM=2
+        export BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0 ;;
+    *) printf '%s\n' 'Invalid ST_CPU_MODE'; exit 2 ;;
+esac
+if [ "${ST_DEBUG:-0}" = 1 ]; then export BOX64_LOG=1; fi
+session_phase=game
+printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-interpreter}"
+printf '%s\n' 'Graphics configuration is experimental; this is not a verified playable port.'
+export SDL_GAMECONTROLLERCONFIG_FILE="${SDL_GAMECONTROLLERCONFIG_FILE:-/userdata/system/.local/share/PortMaster/knulli/gamecontrollerdb.txt}"
+LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &
+controls_pid=$!; controls_birth=$(child_start "$controls_pid")
+test -x "$window_root/st-log"
+pipe_dir=$(mktemp -d "$window_root/logs/.pipes.XXXXXX")
+mkfifo "$pipe_dir/stdout" "$pipe_dir/stderr"
+"$window_root/st-log" "$window_root/logs/game-wine.stdout.txt" < "$pipe_dir/stdout" & stdout_pid=$!; stdout_birth=$(child_start "$stdout_pid")
+"$window_root/st-log" "$window_root/logs/game-wine.txt" < "$pipe_dir/stderr" & stderr_pid=$!; stderr_birth=$(child_start "$stderr_pid")
+cd "$window_root/gamedata"
+env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
+    "$window_root/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe \
+    > "$pipe_dir/stdout" 2> "$pipe_dir/stderr" &
+game_pid=$!; game_birth=$(child_start "$game_pid")
+printf 'Game PID: %s; heap arenas: %s; csmt=0; debug=%s\n' "$game_pid" "$MALLOC_ARENA_MAX" "${ST_DEBUG:-0}"
+sh "$window_root/sample-session.sh" "$game_pid" "$window_root/logs/memory.csv" & telemetry_pid=$!; telemetry_birth=$(child_start "$telemetry_pid")
+while child_alive "$game_pid" "$game_birth"; do
+    if [ -n "$desktop_pid" ] && ! child_alive "$desktop_pid" "$desktop_birth"; then
+        if wait "$desktop_pid"; then
+            printf '%s\n' 'Desktop readiness helper retired after game window creation.'
+        else
+            printf '%s\n' 'Desktop readiness helper ended unexpectedly; see desktop.txt.'
         fi
-        if ! kill -0 "$controls_pid" 2>/dev/null; then
-            if wait "$controls_pid"; then
-                controls_pid=
-                printf '%s\n' 'Controller exit shortcut requested exit.'
-                exit 0
-            else
-                controls_pid=
-                printf '%s\n' 'Controller helper unavailable; see controls.txt. USB mouse/keyboard remain usable.'
-                break
-            fi
+        desktop_pid=
+    fi
+    if ! child_alive "$controls_pid" "$controls_birth"; then
+        if wait "$controls_pid"; then
+            controls_pid=
+            printf '%s\n' 'Controller exit shortcut requested exit.'
+            exit 0
+        else
+            controls_pid=
+            printf '%s\n' 'Controller helper unavailable; see controls.txt. Handheld USB input is unverified.'
+            exit 1
         fi
-        sleep 1
-    done
-    if wait "$game_pid"; then game_status=0; else game_status=$?; fi
-    game_pid=
-    printf 'Game process exited: %s\n' "$game_status"
-    exit "$game_status"
-fi
+    fi
+    sleep 1
+done
+if wait "$game_pid"; then game_status=0; else game_status=$?; fi
+game_pid=
+printf 'Game process exited: %s\n' "$game_status"
+exit "$game_status"

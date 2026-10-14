@@ -7,6 +7,7 @@ repo=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='st-entry-') as directory:
  root=Path(directory); game=root/'school-tycoon';logs=game/'logs';logs.mkdir(parents=True)
  entry=root/'School Tycoon.sh';entry.write_bytes((repo/'packaging/School Tycoon.sh').read_bytes())
+ subprocess.run(['cc','-O2',str(repo/'tools/st-lock.c'),'-o',str(game/'st-lock')],check=True)
  (game/'gamedata').mkdir();(game/'gamedata/SchoolTycoon.exe').write_bytes(b'private asset')
  saved=game/'gamedata/save.sts';saved.write_bytes(b'preserve saved school')
  def script(path,text):path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text);path.chmod(0o755)

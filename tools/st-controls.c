@@ -61,7 +61,12 @@ int main(void) {
     int requested_exit = 0;
     while(running) {
         SDL_GameControllerUpdate();
-        if (pad && !SDL_GameControllerGetAttached(pad)) { fputs("Controller disconnected\n",stderr); SDL_GameControllerClose(pad); pad = NULL; }
+        if (pad && !SDL_GameControllerGetAttached(pad)) { fputs("Controller disconnected\n",stderr); for(int i=0;i<8;i++) if(old[i]) {
+            if(i<2) XTestFakeButtonEvent(display,i==0?1:3,0,0);
+            else XTestFakeKeyEvent(display,XKeysymToKeycode(display,keys[i]),0,0);
+            old[i]=0;
+        }
+        XFlush(display);SDL_GameControllerClose(pad); pad = NULL; }
         if (!pad) for(int i=0;i<SDL_NumJoysticks();i++) if(SDL_IsGameController(i)) { pad=SDL_GameControllerOpen(i); if(pad) {fputs("Controller connected\n",stderr);break;} }
         if(pad && SDL_GameControllerGetButton(pad,6) &&
            (SDL_GameControllerGetButton(pad,5) || SDL_GameControllerGetButton(pad,4) ||

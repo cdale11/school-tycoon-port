@@ -8,10 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct shader_source { unsigned id; int length, modified; char *original, *backend; struct shader_source *next; };
-struct linked_source { unsigned id, shader; char *joined; struct linked_source *next; };
+struct shader_source { unsigned id; int length, modified; char *original; unsigned long backend_revision; struct shader_source *next; };
+struct linked_source { unsigned id, shader; char *joined; unsigned long revision; struct linked_source *next; };
 static struct shader_source *shaders;
 static struct linked_source *programs;
+static unsigned long revision;
+static unsigned (*create_shader)(unsigned);
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void (*set_source)(unsigned,int,const char **,const int *);
@@ -25,6 +27,7 @@ static void load(void) {
     void *h=path?dlopen(path,RTLD_NOW|RTLD_NOLOAD):NULL;
     if (!h) abort();
 #define LOAD(v,n) v=dlsym(h,n); if(!v) abort()
+    LOAD(create_shader,"glCreateShader");
     LOAD(set_source,"glShaderSource"); LOAD(get_source,"glGetShaderSource");
     LOAD(get_shader,"glGetShaderiv"); LOAD(get_program,"glGetProgramiv");
     LOAD(compile,"glCompileShader"); LOAD(use_program,"glUseProgram");
@@ -44,7 +47,7 @@ static void restore(struct shader_source *s) {
     if(!s || !s->modified) return;
     const char *text=s->original;
     set_source(s->id,1,&text,NULL);
-    free(s->backend);s->backend=NULL;s->modified=0;
+    s->backend_revision=0;s->modified=0;
 }
 void st_source_before_link(unsigned program, int count, const unsigned *attached) {
     pthread_once(&once,load);
@@ -71,12 +74,34 @@ void st_source_joined(unsigned program,unsigned shader,const char *original,cons
             else {s->id=shader;s->length=(int)strlen(original)+1;s->next=shaders;shaders=s;}
         }
     }
-    if(s){forget_program(program);p->id=program;p->shader=shader;p->joined=text;p->next=programs;programs=p;}
+    if(s){forget_program(program);p->id=program;p->shader=shader;p->joined=text;p->revision=++revision;if(!p->revision)p->revision=++revision;p->next=programs;programs=p;}
     else {free(text);free(p);}
     pthread_mutex_unlock(&lock);
 }
+static void forget_shader(unsigned id) {
+    struct shader_source **p=&shaders;
+    while(*p && (*p)->id!=id)p=&(*p)->next;
+    if(*p){struct shader_source *old=*p;*p=old->next;free(old->original);free(old);}
+    struct linked_source *next;
+    for(struct linked_source *q=programs;q;q=next) {
+        next=q->next;if(q->shader==id)forget_program(q->id);
+    }
+}
 void st_source_program_deleted(unsigned program) {
-    pthread_mutex_lock(&lock);forget_program(program);pthread_mutex_unlock(&lock);
+    pthread_once(&once,load);
+    pthread_mutex_lock(&lock);
+    forget_program(program);
+    struct shader_source *next;
+    for(struct shader_source *s=shaders;s;s=next) {
+        next=s->next;if(!is_shader(s->id))forget_shader(s->id);
+    }
+    pthread_mutex_unlock(&lock);
+}
+unsigned st_glCreateShader(unsigned type) {
+    pthread_once(&once,load);
+    unsigned id=create_shader(type);
+    if(id) {pthread_mutex_lock(&lock);forget_shader(id);pthread_mutex_unlock(&lock);}
+    return id;
 }
 void st_glUseProgram(unsigned program) {
     pthread_once(&once,load);
@@ -84,9 +109,10 @@ void st_glUseProgram(unsigned program) {
     for(struct linked_source *p=programs;p;p=p->next) if(p->id==program) {
         int linked=0;get_program(program,0x8b82,&linked);
         struct shader_source *s=linked?find_shader(p->shader):NULL;
-        if(s && (!s->modified || strcmp(s->backend,p->joined))) {
-            char *copy=strdup(p->joined);
-            if(copy){const char *text=copy;set_source(s->id,1,&text,NULL);free(s->backend);s->backend=copy;s->modified=1;}
+        if(s && (!s->modified || s->backend_revision!=p->revision)) {
+            const char *text=p->joined;
+            set_source(s->id,1,&text,NULL);
+            s->backend_revision=p->revision;s->modified=1;
         }
         break;
     }
@@ -132,11 +158,9 @@ void st_glGetShaderSource(unsigned shader,int size,int *length,char *output) {
     pthread_mutex_unlock(&lock);get_source(shader,size,length,output);
 }
 void st_glDeleteShader(unsigned shader) {
-    pthread_once(&once,load);delete_shader(shader);
-    if(is_shader(shader)) return; /* Delete-pending attached objects remain queryable. */
+    pthread_once(&once,load);int valid=is_shader(shader);delete_shader(shader);
+    if(!valid || is_shader(shader)) return; /* Delete-pending attached objects remain queryable. */
     pthread_mutex_lock(&lock);
-    struct shader_source **p=&shaders;
-    while(*p && (*p)->id!=shader)p=&(*p)->next;
-    if(*p){struct shader_source *old=*p;*p=old->next;free(old->original);free(old->backend);free(old);}
+    forget_shader(shader);
     pthread_mutex_unlock(&lock);
 }

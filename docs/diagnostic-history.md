@@ -1,6 +1,6 @@
 ## Test the ARM64 CPU runtime
 
-Download [school-tycoon-runtime-probe.tar.gz](releases/school-tycoon-runtime-probe.tar.gz)
+Download [school-tycoon-runtime-probe.tar.gz](https://github.com/cdale11/school-tycoon-port/raw/945d7b0/releases/school-tycoon-runtime-probe.tar.gz)
 and extract it into `/userdata/roms/ports/` on the handheld. Through SSH, run:
 
 ```sh
@@ -30,7 +30,7 @@ uses glibc 2.40. Package SHA-256:
 ## Test Windows command execution
 
 After the CPU diagnostic passes, extract
-[school-tycoon-wine-scripts.tar.gz](releases/school-tycoon-wine-scripts.tar.gz)
+[school-tycoon-wine-scripts.tar.gz](https://github.com/cdale11/school-tycoon-port/raw/945d7b0/releases/school-tycoon-wine-scripts.tar.gz)
 into `/userdata/roms/ports/`. It adds [prepare-wine.sh](tools/prepare-wine.sh)
 and [test-wine.sh](tools/test-wine.sh) to the existing
 `school-tycoon-runtime-probe/` directory. Through SSH, run:
