@@ -549,3 +549,18 @@ are separate from the passing shader tests.
 thread count alongside guest available memory every 30 seconds. It checks the
 VM model and process start time, so PID reuse ends sampling. It only observes
 the owned test and writes its bounded-rate log under `/userdata`.
+
+
+A passive PE32 VM fixture, `windows-desktop-ready.c`, creates a hidden window,
+writes `ST-DESKTOP-READY` in its writable working directory, and keeps the Wine
+desktop alive in a message loop. It uses no graphics interposers and does not
+send input. Its readiness marker was verified in the actual ARM64 VM. Launching
+the original game after that marker progressed to DirectMusic/audio startup
+without the earlier explorer failure. This is a testing workaround under
+validation, not a handheld launcher requirement or a gameplay pass.
+
+Build it with a PE32 MinGW compiler using `-Os -nostdlib -mwindows
+-Wl,-e,_desktop_start`, linking `-lkernel32 -luser32`. Run it from a writable
+private guest directory with the same Wine prefix/display as the game. Close
+its window with WM_CLOSE, or stop that owned prefix's server during session
+cleanup. Never infer readiness merely from the Wine process existing.
