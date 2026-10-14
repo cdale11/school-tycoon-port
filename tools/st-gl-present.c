@@ -83,6 +83,8 @@ void glBlitFramebufferEXT(int a, int b, int c, int d, int e, int f, int g, int h
     glBlitFramebuffer(a, b, c, d, e, f, g, h, mask, filter);
 }
 
+void st_glLinkProgram(unsigned program);
+
 void *crusty_glXGetProcAddressARB(const unsigned char *name) {
     pthread_once(&procedure_once, resolve_procedure);
     /* Preserve Crusty's backend initialization before returning an override. */
@@ -90,6 +92,9 @@ void *crusty_glXGetProcAddressARB(const unsigned char *name) {
     if (result && (!strcmp((const char *)name, "glBlitFramebuffer")
                || !strcmp((const char *)name, "glBlitFramebufferEXT")))
         return glBlitFramebuffer;
+    if (result && (!strcmp((const char *)name, "glLinkProgram")
+               || !strcmp((const char *)name, "glLinkProgramARB")))
+        return st_glLinkProgram;
     return result;
 }
 

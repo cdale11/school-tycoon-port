@@ -296,3 +296,36 @@ swap in use). This is a failed sustained-run test even though the scene and
 save succeeded. The emulator uses software Mesa, so its allocation pattern
 is not a measurement of Mali memory use. Shader errors remain a separate
 reproducible compatibility fault under investigation.
+
+## Vertex output linking fix under test (2026-10-14)
+
+Wine supplies `setup_vs_output` in a second vertex shader object. Desktop
+OpenGL can link those objects; the pinned GLES bridge failed with an unresolved
+function. `tools/st-gl-shader.c` joins the function with the main vertex source
+for this specific two-object case. Native attachments are temporarily changed
+for linking and then restored. Original sources, GL4ES attachment bookkeeping
+and delete-pending shader ownership are preserved. Variants with additional
+point-size uniforms fall back to the existing linker.
+
+The actual ARM64 GL4ES/GLES test failed to link without the fix (exit 4). With
+the fix it linked 64 times, retained all three original attachments including a
+delete-pending output shader, and rendered the expected RGBA pixel
+204/51/25/255 (exit 0). The existing native framebuffer-copy and binding
+restoration probe also passed with the combined presentation/shader helper.
+The full original-game test using the optimized interpreter runtime and this
+linking approach is in progress. It recognizes the previous Farmland save;
+reload and sustained gameplay are not yet verified.
+
+Build the presentation helper for the target ABI from both source files:
+
+```sh
+cc -O2 -fPIC -shared tools/st-gl-present.c tools/st-gl-shader.c \
+  -ldl -pthread -o libst-gl-present.so
+```
+
+For the unmodified Box64 revision recorded above, explicitly set
+`-DCMAKE_BUILD_TYPE=Release '-DCMAKE_C_FLAGS_RELEASE=-O2 -DNDEBUG'`,
+`-DARM64=ON -DARM_DYNAREC=ON -DLD80BITS=OFF -DNOALIGN=OFF` when configuring
+the ARM64 build. Verify the generated interpreter flags include `-O2`; a
+Release cache label alone is insufficient. The optimized binary requires
+glibc 2.38 or newer, within the device's reported glibc 2.40 ABI.
