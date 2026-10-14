@@ -23,13 +23,15 @@ test -f /userdata/libst-gl-present.so
 test -f /userdata/libsdl-display.so
 test -f /userdata/gamedata/SchoolTycoon.exe
 cd /userdata/gamedata
-"$bb" rm -f /userdata/game-verified-env.status.txt
+log=${ST_VM_LOG_PREFIX:-game-verified-env}
+case "$log" in ''|.|..|*[!A-Za-z0-9._-]*) exit 2 ;; esac
+"$bb" rm -f "/userdata/$log.status.txt"
 if LD_PRELOAD="$app_preload" /userdata/box64-opt \
     /userdata/wine-10.0-amd64-wow64/bin/wine ./SchoolTycoon.exe \
-    >/userdata/game-verified-env.stdout.txt 2>/userdata/game-verified-env.stderr.txt; then
+    >"/userdata/$log.stdout.txt" 2>"/userdata/$log.stderr.txt"; then
     status=0
 else
     status=$?
 fi
-printf '%s\n' "$status" >/userdata/game-verified-env.status.txt
+printf '%s\n' "$status" >"/userdata/$log.status.txt"
 exit "$status"

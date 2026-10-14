@@ -409,3 +409,11 @@ framebuffer-binding restoration test also passes with this helper. Full-game
 and handheld validation of the added uniform correction remain pending.
 
 Reference: [OpenGL glUniform semantics](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glUniform.xhtml).
+
+The uniform and framebuffer-copy probes also pass with Mesa Softpipe (native
+GLES 3.1), providing a software path without LLVM compiler-worker allocations.
+The VM environment now allows `GALLIUM_DRIVER=softpipe` for this comparison and
+limits LLVM worker threads and glibc arenas in the default software test. These
+settings apply only to the cloud emulator, not the handheld's Mali backend.
+Use a distinct `ST_VM_LOG_PREFIX` for each full-game run to preserve its logs.
+Full-game results for the added uniform correction remain pending.

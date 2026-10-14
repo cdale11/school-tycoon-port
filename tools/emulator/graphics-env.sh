@@ -2,7 +2,8 @@
 # These paths are VM dependencies, not handheld installation paths.
 export DISPLAY=${DISPLAY:-:95}
 export __EGL_VENDOR_LIBRARY_FILENAMES=/userdata/50_mesa.json
-export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=${GALLIUM_DRIVER:-llvmpipe}
+export LP_NUM_THREADS=${LP_NUM_THREADS:-1} MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-2}
 export LIBGL_DRIVERS_PATH=/userdata/graphics/usr/lib/aarch64-linux-gnu/dri
 export CRUSTY_LIBEGL=/userdata/graphics/usr/lib/aarch64-linux-gnu/libEGL.so.1
 export CRUSTY_LIBSDL=/userdata/graphics/usr/lib/aarch64-linux-gnu/libSDL2-2.0.so.0
