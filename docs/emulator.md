@@ -599,3 +599,18 @@ mouse-button state showed that its down event eventually arrived. All test
 presses were cleared before the owned prefix was stopped. The next differential
 test uses `ST_VM_BACKEND_DISPLAY=:95` to place SDL presentation and Wine input
 on the same X display; the existing separate-display default stays :96.
+
+
+The same-display run correctly exported both Wine and SDL display :95, but
+root captures stayed black. Its window tree showed separate mapped SDL and
+Wine windows, and X focus was initially on SDL. Raising SDL did not recover
+the image. The test was intentionally stopped (status 143), and the known
+rendering setup was restored. Window titles must be inspected via WM_CLASS
+and legacy names here: a name search alone missed real Wine windows.
+
+Explicit X focus on Wine's input window in the restored setup allowed native
+XTest Enter to skip both intros, and native clicks navigated Play/Load Game.
+The saved 3D scene is loading with message tracing for the remaining input
+check. This has not yet established a 3D placement or active-simulation pass.
+A loading sample used about 9.5 seconds of process CPU over 11 wall seconds;
+the long load is active CPU work rather than a pure network wait.
