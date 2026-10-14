@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 static volatile sig_atomic_t running = 1;
@@ -27,6 +28,7 @@ int main(void) {
     FN(s, short, SDL_GameControllerGetAxis, (void *, int));
     FN(s, void, SDL_GameControllerUpdate, (void));
     FN(s, int, SDL_GameControllerAddMapping, (const char *));
+    FN(s, int, SDL_GameControllerGetButtonFromString, (const char *));
     FN(x, void *, XOpenDisplay, (const char *));
     FN(x, int, XCloseDisplay, (void *));
     FN(x, unsigned char, XKeysymToKeycode, (void *, unsigned long));
@@ -43,6 +45,15 @@ int main(void) {
     void *pad = NULL;
     int old[8] = {0};
     const int buttons[6] = {0,1,2,3,6,10}; /* A B X Y Start R1 */
+    int hotkey = 5; /* SDL Guide: KNULLI/PortMaster's mapped Fn button. */
+    const char *configured_hotkey = getenv("HOTKEY");
+    if (configured_hotkey && *configured_hotkey) {
+        const char *name = !strcmp(configured_hotkey,"l3") ? "leftstick" :
+                           !strcmp(configured_hotkey,"r3") ? "rightstick" : configured_hotkey;
+        int mapped = SDL_GameControllerGetButtonFromString(name);
+        if (mapped >= 0) hotkey = mapped;
+        else fprintf(stderr,"Unknown HOTKEY %s; using Guide and Select exit shortcuts\n", configured_hotkey);
+    }
     const unsigned long keys[8] = {0,0,0x20,0xff1b,0xff0d,0xff09,0xff55,0xff56};
     signal(SIGTERM,stop); signal(SIGINT,stop);
     struct timespec tick = {0,16000000};
@@ -51,7 +62,9 @@ int main(void) {
         SDL_GameControllerUpdate();
         if (pad && !SDL_GameControllerGetAttached(pad)) { SDL_GameControllerClose(pad); pad = NULL; }
         if (!pad) for(int i=0;i<SDL_NumJoysticks();i++) if(SDL_IsGameController(i)) { pad=SDL_GameControllerOpen(i); if(pad) break; }
-        if(pad && SDL_GameControllerGetButton(pad,4) && SDL_GameControllerGetButton(pad,6)) { requested_exit=1; break; }
+        if(pad && SDL_GameControllerGetButton(pad,6) &&
+           (SDL_GameControllerGetButton(pad,5) || SDL_GameControllerGetButton(pad,4) ||
+            SDL_GameControllerGetButton(pad,hotkey))) { requested_exit=1; break; }
         int now[8] = {0};
         if(pad) {
             for(int i=0;i<6;i++) now[i]=!!SDL_GameControllerGetButton(pad,buttons[i]);

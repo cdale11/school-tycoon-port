@@ -17,7 +17,17 @@ export BOX64_LD_LIBRARY_PATH=/userdata/x86_64:/userdata/wine-10.0-amd64-wow64/li
 export BOX64_PATH=/userdata/wine-10.0-amd64-wow64/bin:/usr/bin:/bin
 unset WINESERVER
 app_preload="/userdata/libsdl-display.so:$LD_PRELOAD"
-unset LD_PRELOAD
+app_audit=
+if [ "${ST_VM_ALLOC_AUDIT:-0}" = 1 ]; then
+    test "${ST_VM_ALLOC_TRACE:-0}" != 1
+    test -f /userdata/libst-alloc-audit.so
+    app_audit=/userdata/libst-alloc-audit.so
+fi
+if [ "${ST_VM_ALLOC_TRACE:-0}" = 1 ]; then
+    test -f /userdata/libst-alloc-trace.so
+    app_preload="/userdata/libst-alloc-trace.so:$app_preload"
+fi
+unset LD_PRELOAD LD_AUDIT
 test -x /userdata/box64-opt
 test -f /userdata/libst-gl-present.so
 test -f /userdata/libsdl-display.so
@@ -26,7 +36,7 @@ cd /userdata/gamedata
 log=${ST_VM_LOG_PREFIX:-game-verified-env}
 case "$log" in ''|.|..|*[!A-Za-z0-9._-]*) exit 2 ;; esac
 "$bb" rm -f "/userdata/$log.status.txt"
-if LD_PRELOAD="$app_preload" /userdata/box64-opt \
+if LD_PRELOAD="$app_preload" LD_AUDIT="$app_audit" /userdata/box64-opt \
     /userdata/wine-10.0-amd64-wow64/bin/wine ./SchoolTycoon.exe \
     >"/userdata/$log.stdout.txt" 2>"/userdata/$log.stderr.txt"; then
     status=0

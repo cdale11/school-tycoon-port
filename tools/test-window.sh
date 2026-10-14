@@ -196,7 +196,7 @@ if [ "$window_mode" = game ]; then
         if ! kill -0 "$controls_pid" 2>/dev/null; then
             if wait "$controls_pid"; then
                 controls_pid=
-                printf '%s\n' 'Select + Start requested exit.'
+                printf '%s\n' 'Controller exit shortcut requested exit.'
                 exit 0
             else
                 controls_pid=

@@ -417,3 +417,53 @@ limits LLVM worker threads and glibc arenas in the default software test. These
 settings apply only to the cloud emulator, not the handheld's Mali backend.
 Use a distinct `ST_VM_LOG_PREFIX` for each full-game run to preserve its logs.
 Full-game results for the added uniform correction remain pending.
+
+## Saved-scene reload and native memory tracing (2026-10-14)
+
+The combined shader/uniform fixes, optimized interpreter and Softpipe reached
+the original saved Farmland scene. The captured frame includes the character,
+trees, terrain and HUD. No `glUniform`, `walk_constant_heap`, or shader-link
+failure was recorded in this run. This is a rendering improvement, not a
+sustained-gameplay pass: memory kept growing after the scene appeared. The
+game was deliberately killed when swap filled (RSS about 887 MiB, game swap
+about 348 MiB); this termination was not attributed to the kernel OOM killer.
+
+Two process maps show one large native anonymous region growing from about
+331 MiB to 668 MiB, while the native heap and Windows regions stayed roughly
+steady. Software-renderer allocation patterns cannot certify Mali memory use.
+
+`alloc-trace.c` records live native allocations of at least 128 KiB, including
+aligned allocation, with a bounded table and dropped-record counter. Ordinary
+preload interposition does not reach Box64's executable-provided allocator.
+`alloc-audit.c` therefore observes bindings to that allocator through glibc's
+loader audit API, calling the exact original functions with unchanged arguments.
+Only external bindings are observed; internal allocator calls and direct memory
+mapping are outside its coverage. This diagnostic adds overhead and is excluded
+from handheld packages and performance measurements.
+
+The host integration test verifies both mechanisms against actual allocation,
+resize, aligned allocation and release. A matching ARM64 VM audit fixture also
+passed: 105 allocations, zero dropped records, and zero retained bytes after
+release. Game allocation attribution is in progress. To enable the VM diagnostic,
+build `alloc-audit.c` as a native shared library at
+`/userdata/libst-alloc-audit.so`, then set `ST_VM_ALLOC_AUDIT=1` and a distinct
+`ST_VM_LOG_PREFIX` when invoking `run-session.sh`.
+
+`run-session.sh` snapshots the game and graphics environment scripts before
+starting. Editing a shared shell script during an earlier active test changed
+its unread portion and broke the final status write. That test's deliberate
+kill status was preserved explicitly; future sessions execute immutable copies.
+The wrapper removes only its own temporary script directory after completion.
+
+Remaining work includes placement and another save/reload, sustained stability,
+PortMaster Guide/Fn + Start exit handling, measured runtime optimization, and
+closer firmware/device emulation. Native Mali and physical inputs remain
+separate hardware checks.
+
+The source controller helper now recognizes SDL Guide/Fn + Start, retains
+Select + Start, and also recognizes PortMaster's `HOTKEY` setting (including
+`l3`/`r3`). Real SDL virtual-controller/XTest checks passed all three tested
+combinations (Guide, Select, configured L3). Start alone did not exit, and a held
+mouse button was released on exit. The production launcher orchestration check
+also passed; physical Fn and original-game exit remain unverified. Download
+archives still contain the older controller until the runtime update is rebuilt.

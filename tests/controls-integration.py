@@ -63,9 +63,14 @@ assert not position()[2] & 256
 setbutton(1,1)
 assert position()[2] & 1024
 setbutton(1,0)
-setbutton(4,1)
+setbutton(6,1)
+assert thread.is_alive(), 'Start alone exited the helper'
+setbutton(6,0)
+setbutton(1,1)  # Exit must release an already-held mouse button.
+exit_button = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+setbutton(exit_button,1)
 setbutton(6,1)
 thread.join(2)
 assert result == [0], result
 assert not position()[2] & (256|1024)
-print('PASS: D-pad mouse movement, left/right click, release, Select+Start exit')
+print(f'PASS: movement, clicks, Start alone, held-button release, exit button {exit_button}+Start')
