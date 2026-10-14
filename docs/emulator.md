@@ -641,3 +641,21 @@ linking `-lkernel32 -luser32`, and copy it to
 `/userdata/windows-st-input-ready.exe` in the prepared guest. Run
 `sh click-game.sh X Y` there. Invalid coordinates and other executable hashes
 are rejected; the driver releases a held native button if observation fails.
+
+
+With cached-position/down/up acknowledgements, native mouse actions resumed
+the game and opened Build → Academics → English. Clicking the classroom picture
+in its preview activated the placement model, including the footprint and
+rotate/clone instructions. Placing Portable English on clear land reduced
+cash from $8000 to $6500. Its panel rendered capacity 10, condition, resale
+value and interior. The simulation subsequently reached Day 1, rendered the
+bus and charged operating costs (cash $6470).
+
+The game Save screen wrote the changed NewSave file: 203182 → 204699 bytes,
+SHA-256 d5308f91414dd9da979b85bb21fb6656a6f035b759b5eee0a29a6fe5dfd279a2.
+The prior private test save was preserved outside the save directory.
+This proves placement, saving and day progression in the VM. Fresh reload,
+student/staff progression, keyboard controls, runtime tuning and physical
+handheld rendering/performance remain separate validation work. The internal
+FPE shader-link failure count stayed zero; post-placement RSS was about
+701 MiB, with no process swap.

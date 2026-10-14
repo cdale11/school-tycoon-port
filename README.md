@@ -6,8 +6,8 @@ the original intro, menus and Farmland school scene through the GLES bridge and
 written a save file. The latest source also reloads the saved scene with its
 character and trees. The corrected internal shader variants also passed a
 long initial-scene run: roughly 100 minutes near 687–690 MiB RSS with no repeated
-internal shader-link failures. Active simulation, placement, another save/reload
-and performance checks are still in progress.
+internal shader-link failures. The VM also placed a classroom, saved the changed school and reached Day 1.
+Fresh reload, fuller simulation and performance checks remain in progress.
 The VM uses software Mesa rather than the handheld's Mali driver, so these
 results do not certify handheld rendering or performance.
 
