@@ -567,11 +567,11 @@ cleanup. Never infer readiness merely from the Wine process existing.
 
 
 The corrected original-game run reloaded NewSave and rendered the Farmland
-building, trees, character and HUD. Its paused scene remained alive across the
+building, trees, character and HUD. Its initial school scene remained alive across the
 work interruption. Samples from 14:32–16:21 UTC stayed near 687–690 MiB RSS;
 the last ten minutes ranged from 689540 to 689552 KiB, with no process swap.
 Guest swap use settled near 11 MiB. GL4ES stdout contains zero internal FPE
-link failures. This validates sustained rendering of a paused scene; it does
+link failures. This validates sustained rendering of the initial school scene; it does
 not yet validate active simulation, placement or handheld performance.
 Native XTest held mouse clicks also opened Play and Load Game and started the
 save, confirming the controller helper's input mechanism reaches this game.
@@ -614,3 +614,30 @@ The saved 3D scene is loading with message tracing for the remaining input
 check. This has not yet established a 3D placement or active-simulation pass.
 A loading sample used about 9.5 seconds of process CPU over 11 wall seconds;
 the long load is active CPU work rather than a pure network wait.
+
+
+The focused run's native pause click eventually produced the game's PAUSE
+screen, and another acknowledged click resumed it. An immediate move from
+Pause to Build instead activated Pause again. A read-only memory observation
+showed that the engine caches its pointer coordinates once per frame: clicks
+sent immediately after motion can use the previous position in this slow VM.
+The earlier long initial-scene run was not confirmed paused; its Day 0 display
+alone does not prove pause state. Active school simulation remains a separate
+check until a classroom is placed and students arrive.
+
+`windows-st-input-ready.c` observes the cached pointer/button state for the
+exact inspected executable (SHA-256 enforced by `click-game.sh`). It reads
+process memory and does not alter the executable or its memory. The native
+XTest driver moves the pointer, waits for cached-position readiness, presses,
+waits for down-event readiness, releases, then waits for up-event readiness.
+This passed resume and Build-menu actions with three `ST-INPUT-READY` markers
+and `ST-CLICK-PASS` per action. Wine's auxiliary-process SetCursorPos returned
+success without moving the native pointer in this setup, so the observer uses
+native XTest motion instead. This fixture is specific to the private VM and
+inspected executable; it is not a handheld compatibility shim.
+
+Build the PE32 observer with `-Os -nostdlib -mwindows -Wl,-e,_input_start`,
+linking `-lkernel32 -luser32`, and copy it to
+`/userdata/windows-st-input-ready.exe` in the prepared guest. Run
+`sh click-game.sh X Y` there. Invalid coordinates and other executable hashes
+are rejected; the driver releases a held native button if observation fails.
