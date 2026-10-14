@@ -491,3 +491,23 @@ mapping tracer for that owned process and records its separate exit status.
 The tracer can instead be attached only during the scene-loading phase to
 reduce startup overhead. Native Mali allocation and emulator timing still
 require separate validation.
+
+The 4 KiB allocator run retained about 458 MB at Mesa's `ralloc_size` call
+site, in addition to its approximately 201 MB of fixed texture caches. Its
+last summary recorded 337000 observed calls with zero dropped records. Debian
+debug symbols matching the loaded Gallium build ID identify the first sample
+as GLSL builtin-symbol/hash-table allocation; that first sample does not prove
+which later compiler allocations account for the growth. The diagnostic now
+samples fresh stacks each time a site's retained bytes grow by another 16 MiB.
+
+An auxiliary display was accidentally run in the foreground of the old PID-1
+rescue shell, which had no controlling terminal. The private VM was stopped,
+its data disk backed up and its ext4 journal recovered before restart. The
+rescue shell now runs as a child session with a controlling tty. Its PID,
+session/process group and tty were verified, and Ctrl+C interrupted a native
+sleep. Run persistent test displays in the background and wait for X11 readiness.
+
+The ARM64 controller helper also passed the real SDL virtual-controller/XTest
+checks inside the VM for Guide/Fn, Select and configured L3 plus Start, with
+Start-alone and held-button-release checks. Physical inputs and full-game
+exit are still separate checks.

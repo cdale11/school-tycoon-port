@@ -36,4 +36,9 @@ ip link set lo up
 cp /bin/busybox /lower/userdata/busybox
 chroot /lower /bin/bash /userdata/host/emulator/shared/guest-test.sh
 printf '\nGuest test ended; interactive rescue shell follows.\n'
-exec chroot /lower /bin/bash
+# Keep PID 1 in the init script. A child shell needs its own controlling tty
+# so foreground helpers can be interrupted and background jobs managed.
+while true; do
+    chroot /lower /userdata/busybox setsid /userdata/busybox cttyhack /bin/bash -i
+    printf '\nRescue shell exited; restarting it.\n'
+done

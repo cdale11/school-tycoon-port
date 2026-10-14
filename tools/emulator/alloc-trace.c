@@ -23,7 +23,7 @@ extern void __libc_free(void *);
 static size_t minimum_size = MIN_SIZE;
 static unsigned dump_interval = 100;
 struct allocation { void *pointer; size_t size; unsigned site; };
-struct site { void *caller; size_t live, peak, total; unsigned count; };
+struct site { void *caller; size_t live, peak, total, sampled; unsigned count; };
 static struct allocation allocations[SLOTS];
 static struct site sites[SITES];
 static unsigned site_count, events, dropped;
@@ -117,6 +117,17 @@ static void record(void *old, void *p, size_t size, void *caller) {
             allocations[slot] = (struct allocation){p, size, i};
             sites[i].live += size; sites[i].total += size; sites[i].count++;
             if (sites[i].live > sites[i].peak) sites[i].peak = sites[i].live;
+            if (sites[i].live > sites[i].sampled + 16777216) {
+                void *stack[16];
+                int count = backtrace(stack, 16);
+                char line[128];
+                int n = snprintf(line, sizeof(line),
+                    "ST alloc retained pid=%ld site=%u live=%zu size=%zu\n",
+                    (long)getpid(), i, sites[i].live, size);
+                write(2, line, (size_t)n);
+                backtrace_symbols_fd(stack, count, 2);
+                sites[i].sampled = sites[i].live;
+            }
         } else dropped++;
         if (++events % dump_interval == 0) dump();
     }
