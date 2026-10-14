@@ -54,3 +54,14 @@ Keep libst-gl-present.so, libst-glx-config.so and libst-egl-prime.so together
 with the updated run-game.sh. No prefix or game-data reset is needed.
 The original main menu is now visible through this path in the ARM64 VM.
 Level interaction, handheld Mali rendering and performance remain under test.
+
+CURRENT 1 GiB HANDHELD BUILD
+Includes the joined-vertex, uniform-array and internal shader-source fixes tested
+with the original game in the ARM64 VM. Classroom placement, saving and Day 1
+were observed. Native Mali gameplay, audio and speed still need device validation.
+Box64 is built with -O2 instead of the previous -O0. Interpreter remains default.
+MALLOC_ARENA_MAX=2 limits heap arenas; Wine rendering remains csmt=0 for the
+single-context graphics bridge. Fn/Guide + Start exits the owned game session;
+Select + Start is a fallback. Save first. Physical Fn mapping remains unverified.
+Extract over the existing installation while the game is stopped. No game data,
+saves, Wine prefix or cpu-mode.txt is included or removed by this archive.

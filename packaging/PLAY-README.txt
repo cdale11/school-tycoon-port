@@ -32,7 +32,7 @@ B: right click                 X: Space
 Y: Escape                      Start: Enter
 L1 held: precision pointer     R1: Tab
 L2 / R2: Page Up / Page Down
-Select + Start: stop this game session (save in-game first)
+Fn/Guide + Start or Select + Start: stop this game session (save in-game first)
 USB mouse and keyboard can also be used.
 Controller input is sent only to this session's X display.
 
@@ -66,3 +66,14 @@ The launcher verifies Wine's published SHA256 before downloading/extracting.
 Debian libgcc_s.so.1: copyright, license and source provenance under runtime/x86_64.
 Weston/Crusty/GL4ES are reused from your installed PortMaster runtime.
 Original game files remain proprietary and are omitted from GitHub packages.
+
+CURRENT 1 GiB HANDHELD BUILD
+Includes the joined-vertex, uniform-array and internal shader-source fixes tested
+with the original game in the ARM64 VM. Classroom placement, saving and Day 1
+were observed. Native Mali gameplay, audio and speed still need device validation.
+Box64 is built with -O2 instead of the previous -O0. Interpreter remains default.
+MALLOC_ARENA_MAX=2 limits heap arenas; Wine rendering remains csmt=0 for the
+single-context graphics bridge. Fn/Guide + Start exits the owned game session;
+Select + Start is a fallback. Save first. Physical Fn mapping remains unverified.
+Extract over the existing installation while the game is stopped. No game data,
+saves, Wine prefix or cpu-mode.txt is included or removed by this archive.

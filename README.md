@@ -11,9 +11,12 @@ Fresh reload, fuller simulation and performance checks remain in progress.
 The VM uses software Mesa rather than the handheld's Mali driver, so these
 results do not certify handheld rendering or performance.
 
-The latest shader corrections are currently in source for cloud testing.
-The downloadable archives still contain the earlier framebuffer fixes until
-full-game validation of the new shader/runtime changes is complete.
+The handheld archives now include the VM-tested shader corrections, optimized
+Box64 interpreter, a two-arena heap limit, and Fn/Guide + Start exit handling.
+The optimized Box64 requires glibc 2.38 or newer (Scarab reports 2.40).
+The VM school scene used roughly 687–701 MiB RSS; Mali memory use and handheld
+speed remain unverified. Multithreaded rendering stays disabled because the
+bridge owns one graphics context. No save or prefix reset is required.
 
 ## Update an existing installation
 
@@ -43,7 +46,7 @@ No diagnostic commands are required. First startup may take several minutes.
 
 D-pad moves the mouse; A/B click left/right; hold L1 for precision; X is Space,
 Y is Escape, Start is Enter, R1 is Tab, and L2/R2 are Page Up/Down.
-Select + Start stops this game session. Save in-game before using that shortcut.
+Fn/Guide + Start or Select + Start stops this game session. Save in-game before using that shortcut.
 A native SDL controller helper sends input to the private X display.
 
 Game files, settings and game-directory saves remain in `school-tycoon/gamedata`.
@@ -75,6 +78,7 @@ an unresolved teardown assertion. These are material remaining porting blockers.
 
 ## Development
 
+- [Handheld build and memory settings](docs/handheld-build.md)
 - [ARM64 VM tests and limitations](docs/emulator.md)
 - [Runtime findings](docs/target-runtime.md)
 - [Executable assessment](docs/executable-assessment.md)

@@ -105,6 +105,8 @@ cleanup_window() {
 }
 export WINEPREFIX="$window_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
+# Bound glibc heap arenas on the 1 GiB handheld; rendering stays single-context.
+export MALLOC_ARENA_MAX=2
 export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 export WINEDLLOVERRIDES='winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='
