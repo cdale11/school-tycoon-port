@@ -370,3 +370,17 @@ share for inspection.
 A rebuilt initramfs and cold boot validated the output mount and a complete
 800x600 RGB capture visible on the host. The guest reported MemTotal 996496 KiB
 and SwapTotal 498240 KiB, with CRNG initialization at uptime 1.07 seconds.
+
+The interactive rescue shell also inherited an initramfs-only PATH; startup
+now includes `/usr/bin` and the firmware commands. The Xvfb overlay resolves
+firmware links in their original location before binding the overlay and is
+prepared only once per boot. Explicit coreutils and capture checks passed.
+
+`tools/emulator/run-game.sh` supplies the full native graphics and x86 library
+search paths, so the test does not depend on variables exported in an earlier
+console session. Copy it and `graphics-env.sh` into the private shared-script
+directory. The VM-only `sdl-display.c` helper routes SDL presentation to :96
+while Wine input windows stay on :95; compile it with `cc -O2 -shared -fPIC
+-ldl` and place it at `/userdata/libsdl-display.so`. This helper is not included
+in handheld packages. Place the current combined presentation/shader helper at
+`/userdata/libst-gl-present.so` before running the game test.

@@ -1,5 +1,5 @@
 #!/bin/sh
-export PATH=/bin
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 /bin/busybox --install -s /bin
 mount -t devtmpfs devtmpfs /dev
 mount -t proc proc /proc
