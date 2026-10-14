@@ -564,3 +564,14 @@ Build it with a PE32 MinGW compiler using `-Os -nostdlib -mwindows
 private guest directory with the same Wine prefix/display as the game. Close
 its window with WM_CLOSE, or stop that owned prefix's server during session
 cleanup. Never infer readiness merely from the Wine process existing.
+
+
+The corrected original-game run reloaded NewSave and rendered the Farmland
+building, trees, character and HUD. Its paused scene remained alive across the
+work interruption. Samples from 14:32–16:21 UTC stayed near 687–690 MiB RSS;
+the last ten minutes ranged from 689540 to 689552 KiB, with no process swap.
+Guest swap use settled near 11 MiB. GL4ES stdout contains zero internal FPE
+link failures. This validates sustained rendering of a paused scene; it does
+not yet validate active simulation, placement or handheld performance.
+Native XTest held mouse clicks also opened Play and Load Game and started the
+save, confirming the controller helper's input mechanism reaches this game.
