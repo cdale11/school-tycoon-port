@@ -10,15 +10,21 @@ static void report(const char *text) {
 }
 void audio_start(void) {
     LPDIRECTSOUND sound=NULL;
-    LPDIRECTSOUNDBUFFER buffer=NULL;
+    LPDIRECTSOUNDBUFFER buffer=NULL,primary=NULL;
     HRESULT status=DirectSoundCreate(NULL,&sound,NULL);
     if(FAILED(status)) {report("FAIL: DirectSoundCreate\r\n");ExitProcess(1);}
     HWND window=CreateWindowExA(0,"STATIC","School Tycoon audio probe",WS_OVERLAPPED,
         0,0,1,1,NULL,NULL,GetModuleHandleA(NULL),NULL);
-    if(!window || FAILED(IDirectSound_SetCooperativeLevel(sound,window,DSSCL_NORMAL))) {
+    if(!window || FAILED(IDirectSound_SetCooperativeLevel(sound,window,DSSCL_PRIORITY))) {
         report("FAIL: audio cooperative level\r\n");ExitProcess(2);
     }
     WAVEFORMATEX format={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+    DSBUFFERDESC primary_desc={0};primary_desc.dwSize=sizeof(primary_desc);
+    primary_desc.dwFlags=DSBCAPS_PRIMARYBUFFER;
+    if(FAILED(IDirectSound_CreateSoundBuffer(sound,&primary_desc,&primary,NULL)) ||
+       FAILED(IDirectSoundBuffer_SetFormat(primary,&format))) {
+        report("FAIL: primary PCM16 format\r\n");ExitProcess(7);
+    }
     DSBUFFERDESC desc={0};desc.dwSize=sizeof(desc);
     desc.dwFlags=DSBCAPS_GLOBALFOCUS;desc.dwBufferBytes=88200;desc.lpwfxFormat=&format;
     if(FAILED(IDirectSound_CreateSoundBuffer(sound,&desc,&buffer,NULL))) {
@@ -44,7 +50,7 @@ void audio_start(void) {
     DWORD position=0,write_position=0;
     status=IDirectSoundBuffer_GetCurrentPosition(buffer,&position,&write_position);
     IDirectSoundBuffer_Stop(buffer);IDirectSoundBuffer_Release(buffer);
-    IDirectSound_Release(sound);DestroyWindow(window);
+    IDirectSoundBuffer_Release(primary);IDirectSound_Release(sound);DestroyWindow(window);
     if(FAILED(status) || !position) {report("FAIL: playback cursor did not advance\r\n");ExitProcess(6);}
     report("ST-AUDIO-API-PASS\r\n");ExitProcess(0);
 }

@@ -199,3 +199,14 @@ Wine installation. Its task-owned virtual data disk was enlarged from 4 to
 6 GiB and ext4 grown online; CPU/RAM remain unchanged. The same clean candidate
 then resumes from the verified download cache, with no installed Wine or prefix
 from an earlier game run. The storage gate was not bypassed.
+
+The exact ten-DLL candidate passed a second reproducible build with identical
+archive SHA256. The clean installation completed wineboot and the actual PE32
+command check, then extracted and verified all ten native DLLs using the packaged
+ARM64 CAB runtime. The class-readiness and game checks follow separately.
+
+The tone fixture has since been made explicit about requesting a PCM16 primary
+buffer; the reported clipped native recording used its preceding default-primary
+version. Its dominant nonzero levels were approximately +/-3000 with 8-bit-like
+quantization, plus negative-full-scale samples. The amended fixture is compiled
+but its output is not substituted for that failed-quality recording.

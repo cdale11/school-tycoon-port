@@ -147,3 +147,7 @@ silence and tiny resampler dither and reports clipping. API success and a moving
 playback cursor do not by themselves establish correctly captured sound.
 Original recordings and screenshots remain private. See
 [fresh validation](fresh-validation.md) for separate builtin/native media results.
+
+QEMU TCG is not a real-time CPU-speed model. Mixer underruns and timing artifacts
+in this VM may differ from the physical device. Capture results remain evidence
+about the tested fixture, not guarantees about every audio path on Scarab.
