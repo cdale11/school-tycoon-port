@@ -29,7 +29,21 @@ while kill -0 "$pid" 2>/dev/null; do
     fi
     sleep 1
 done
-export WINEPREFIX=/userdata/prefix-gpu-fast BOX64_DYNAREC=0 BOX64_LOG=0
-export BOX64_LD_LIBRARY_PATH=/userdata/x86_64:/userdata/wine-10.0-amd64-wow64/lib/wine/x86_64-unix
-/userdata/box64-opt /userdata/wine-10.0-amd64-wow64/bin/wineserver -k
+if [ -n "${ST_VM_PACKAGE:-}" ]; then
+    vm_game="$ST_VM_PACKAGE/school-tycoon"
+    vm_wine="$vm_game/runtime/wine-10.0-amd64-wow64"
+    vm_prefix="$vm_game/prefix-wine-10.0"
+    vm_box="$vm_game/box64"
+    vm_data="$vm_game/gamedata"
+    vm_lib="$vm_game/runtime/x86_64"
+else
+    vm_wine=/userdata/wine-10.0-amd64-wow64
+    vm_prefix=/userdata/prefix-gpu-fast
+    vm_box=/userdata/box64-opt
+    vm_data=/userdata/gamedata
+    vm_lib=/userdata/x86_64
+fi
+export WINEPREFIX="$vm_prefix" BOX64_DYNAREC=0 BOX64_LOG=0
+export BOX64_LD_LIBRARY_PATH="$vm_lib:$vm_wine/lib/wine/x86_64-unix"
+"$vm_box" "$vm_wine/bin/wineserver" -k
 printf '%s\n' 'ST-GAME-EXIT-PASS: simulated Guide/Fn + Start stopped the owned game session'

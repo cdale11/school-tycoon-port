@@ -6,6 +6,10 @@ Stop School Tycoon. Extract school-tycoon-handheld.tar.gz into
 gamedata, prefix-wine-10.0 or linked runtime-probe directory. No assets, saves,
 settings or Wine prefix are included in this archive.
 
+For a fresh reset, see docs/fresh-install.md in the repository. Move both old
+school-tycoon and school-tycoon-runtime-probe directories out of Ports first
+so no existing prefix/runtime is reused. Back up saves before removing files.
+
 For a new installation, copy the contents of your original ST folder into
 /userdata/roms/ports/school-tycoon/gamedata/. SchoolTycoon.exe and Data must be
 directly inside gamedata. PortMaster must already be installed. Allow 2 GiB free.
@@ -13,8 +17,10 @@ Refresh the KNULLI games list, then launch School Tycoon under Ports.
 Alternatively: sh "/userdata/roms/ports/School Tycoon.sh"
 Wine 10.0 is reused if installed; otherwise one checksum-verified download is
 cached. The PortMaster Weston runtime is extracted locally. First prefix setup
-may take several minutes. GUI desktop readiness allows up to 180 seconds and
-blocks game launch on failure. Its helper exits when the game window appears.
+may take several minutes; initial registration allows up to 600 seconds. GUI desktop readiness allows up to 180 seconds and
+blocks game launch on failure. PE32 media registration/COM readiness is checked
+separately before desktop readiness, allowing up to 180 seconds once per helper
+build/prefix. The separate desktop helper exits when the game window appears.
 Logs identify setup, readiness and game launch phases.
 Concurrent launches are rejected automatically; no lock file deletion is needed.
 A controller-helper failure stops the game and is recorded in controls/game logs.
@@ -41,9 +47,19 @@ Back up gamedata and prefix-wine-10.0 (follow its link if applicable). In-game
 saves normally live in gamedata/Data/SAVED_GAMES. Never delete a linked probe
 directory until its prefix and Wine runtime have been backed up/moved.
 
+AUDIO
+Wine uses the firmware native audio backend; volume/mute/output still apply.
+The launcher preserves an existing per-user PulseAudio connection when creating
+its private display session. First setup downloads the checksum-pinned legacy
+DirectMusic redistributable (about 105 MiB), verifies nine extracted media DLLs,
+and registers/checks 13 PE32 COM classes. This checks registration, not actual
+speaker playback. Game audio validation remains incomplete; see the fresh
+validation report. The port does not implement rumble.
+
 DIAGNOSTICS
 Logs live in school-tycoon/logs/. launcher.txt: installer and package checks.
-system.txt: firmware, build identity, memory/storage and native library paths.
+system.txt: firmware, build identity, memory/storage, native libraries and audio
+inventory. prefix-media.txt/stdout.txt: PE32 media registration/class readiness.
 game.txt: launch phases, owned PIDs and exit status. desktop.txt: Wine GUI readiness.
 controls.txt: controller
 mapping/connection. game-wine.txt and game-wine.stdout.txt: bounded output with

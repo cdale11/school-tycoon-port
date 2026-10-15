@@ -1,4 +1,7 @@
-# Code audit — 2026-10-14
+# First code audit — 2026-10-14
+
+See the subsequent [fresh validation and second audit](fresh-validation.md) for
+the latest package and fresh-install results.
 
 This audit covers the owned launcher, native bridge helpers, controller helper,
 logging and release builder. Upstream Box64, Wine, GL4ES and Crusty remain
@@ -58,7 +61,7 @@ userspace. Native Mali graphics memory, panel/audio, physical Fn mapping and
 usable frame rate still require actual-device evidence. No 1:1 emulator or
 100-percent device guarantee is claimed.
 
-## Current artifact
+## Artifact at commit 1fb96a4
 
 `school-tycoon-handheld.tar.gz`: 5,447,908 bytes. SHA256:
 `e95c7e08fa74d0da323b02aee96da7064f6a4bef203c7b5e877261fa58ed3db2`.

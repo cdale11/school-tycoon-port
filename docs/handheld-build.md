@@ -15,6 +15,7 @@ verified; other binaries are rebuilt from this repository's sources.
 ```sh
 python3 tools/build-handheld.py \
   --box64 /path/to/box64-opt-build/box64 \
+  --cab-runtime build-inputs/cab-runtime.tar.gz \
   --runtime-base releases/school-tycoon-play.tar.gz \
   --cc /path/to/aarch64-linux-gnu-gcc-14 \
   --sysroot /path/to/arm64-sysroot \
@@ -38,6 +39,16 @@ built with `-O2 -DNDEBUG`, replacing the former `-O0` build. Unstripped input:
 Stripped package binary: `168b82ee8995f8235d872360966e8a19f253a82330d0917bdbdae55a15f7dbf8`.
 Its maximum glibc requirement is **2.39** (including libm), below Scarab's 2.40.
 The preceding documentation incorrectly listed 2.38 by overlooking libm.
+
+The CAB input bundle SHA256 is
+`5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`.
+It contains unchanged Debian ARM64 cabextract 1.9-3 and libmspack 0.11-1,
+licenses and complete corresponding Debian source archives. The package keeps
+those sources to satisfy redistribution requirements. Microsoft DLLs are not
+build inputs: the device fetches and verifies the pinned February 2010 DirectX
+redistributable, extracts nine allowlisted PE32 media DLLs and verifies each
+hash. Wine DirectSound is retained. The initial Microsoft URL is retired; the
+Winetricks mirror supplies the identically pinned archive.
 
 ## Runtime and memory
 
@@ -102,3 +113,9 @@ copy per shader. Pending-deleted shaders are reclaimed after final program
 destruction, and reused IDs invalidate stale entries. Package integrity checks
 remain active under Python optimization. Release output is written to a temporary
 file and replaced atomically only after a successful build.
+
+The second audit adds monotonic startup/shutdown deadlines, native PulseAudio
+connection preservation and restoration of shaders beyond the eighth attachment
+on fallback linking. A truly new prefix uses wineboot --init (not a forced -u),
+with a bounded 600-second initial registration gate. See the fresh-validation
+report for the observed first-attempt timeout and corrected-run results.

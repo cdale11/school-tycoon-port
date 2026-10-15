@@ -24,12 +24,12 @@ void desktop_start(void) {
     HWND window=CreateWindowExA(0,cls.lpszClassName,"School Tycoon desktop readiness",
         WS_OVERLAPPED,0,0,1,1,NULL,NULL,cls.hInstance,NULL);
     if(!window) fail(2,"Private Wine desktop window creation failed\r\n");
+    if(!SetTimer(window,1,1000,NULL)) {DestroyWindow(window);fail(5,"Desktop retirement timer failed\r\n");}
     HANDLE output=CreateFileA("desktop-ready.txt",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     if(output==INVALID_HANDLE_VALUE) {DestroyWindow(window);fail(3,"Desktop readiness log cannot be opened\r\n");}
     DWORD written=0;const char marker[]="ST-DESKTOP-READY\r\n";
     BOOL ok=WriteFile(output,marker,sizeof(marker)-1,&written,NULL);CloseHandle(output);
     if(!ok || written!=sizeof(marker)-1) {DestroyWindow(window);fail(4,"Desktop readiness marker write failed\r\n");}
-    if(!SetTimer(window,1,1000,NULL)) {DestroyWindow(window);fail(5,"Desktop retirement timer failed\r\n");}
     report("ST-DESKTOP-READY\r\n");
     MSG message;int result;
     while((result=GetMessageA(&message,NULL,0,0))>0) {TranslateMessage(&message);DispatchMessageA(&message);}

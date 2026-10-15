@@ -53,6 +53,12 @@ fi
 test -x "$weston_dir/wp_weston"
 mkdir -p "$window_root/wayland-runtime"
 chmod 700 "$window_root/wayland-runtime"
+# Preserve an existing per-user audio server before replacing its runtime dir
+# for private Wayland. libpulse otherwise searches the new (empty) directory.
+if [ -z "${PULSE_SERVER:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
+    export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
+    printf '%s\n' 'Preserved native PulseAudio connection for private display session.'
+fi
 export XDG_RUNTIME_DIR="$window_root/wayland-runtime"
 export XKB_CONFIG_ROOT="$weston_dir/share/xkb"
 export WESTON_LIBEXEC_DIR="$weston_dir/libexec"
@@ -92,6 +98,10 @@ stderr_birth=
 pipe_dir=
 game_pid=
 game_birth=
+uptime_seconds() {
+    # Startup/shutdown deadlines must survive NTP or manual wall-clock changes.
+    awk '{print int($1)}' /proc/uptime
+}
 child_start() {
     awk '{sub(/^.*\) /, ""); print $20}' "/proc/$1/stat" 2>/dev/null || :
 }
@@ -103,9 +113,9 @@ stop_child() {
     child_pid=$1; child_birth=$2
     child_alive "$child_pid" "$child_birth" || return 0
     kill "$child_pid" 2>/dev/null || :
-    child_stop_start=$(date +%s)
+    child_stop_start=$(uptime_seconds)
     while child_alive "$child_pid" "$child_birth"; do
-        if [ "$(($(date +%s)-child_stop_start))" -ge 2 ]; then
+        if [ "$(($(uptime_seconds)-child_stop_start))" -ge 2 ]; then
             kill -KILL "$child_pid" 2>/dev/null || :
             sleep 0.1
             break
@@ -142,7 +152,8 @@ export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 export MALLOC_ARENA_MAX=2
 export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
-export WINEDLLOVERRIDES='winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='
+media_root="$window_root"
+. "$window_root/media-env.sh"
 export WINEDEBUG='err+all'
 trap cleanup_window EXIT
 trap 'exit 130' INT
@@ -155,9 +166,9 @@ printf '%s\n' 'Phase: display-start'
         --use-pixman --shell=kiosk-shell.so -i0 -Sschool-tycoon-window --xwayland
 ) > "$window_root/logs/$window_log-weston.txt" 2>&1 &
 weston_pid=$!; weston_birth=$(child_start "$weston_pid")
-window_wait_start=$(date +%s)
+window_wait_start=$(uptime_seconds)
 while [ ! -S /tmp/.X11-unix/X0 ]; do
-    if ! child_alive "$weston_pid" "$weston_birth" || [ "$(($(date +%s) - window_wait_start))" -ge 30 ]; then
+    if ! child_alive "$weston_pid" "$weston_birth" || [ "$(($(uptime_seconds) - window_wait_start))" -ge 30 ]; then
         printf 'Weston/Xwayland did not become ready. See %s-weston.txt.\n' "$window_log"
         cat "$window_root/logs/$window_log-weston.txt"
         exit 1
@@ -180,9 +191,9 @@ test -f "$window_root/st-desktop-ready.exe"
     exec "$window_root/box64" "$wine_dir/bin/wine" "$window_root/st-desktop-ready.exe"
 ) > "$window_root/logs/desktop.txt" 2>&1 &
 desktop_pid=$!; desktop_birth=$(child_start "$desktop_pid")
-desktop_start=$(date +%s)
+desktop_start=$(uptime_seconds)
 while ! grep -q '^ST-DESKTOP-READY' "$window_root/logs/desktop-ready.txt" 2>/dev/null; do
-    if ! child_alive "$desktop_pid" "$desktop_birth" || [ "$(($(date +%s) - desktop_start))" -ge 180 ]; then
+    if ! child_alive "$desktop_pid" "$desktop_birth" || [ "$(($(uptime_seconds) - desktop_start))" -ge 180 ]; then
         if ! child_alive "$desktop_pid" "$desktop_birth"; then
             if wait "$desktop_pid"; then desktop_status=0; else desktop_status=$?; fi
             desktop_pid=
@@ -224,7 +235,7 @@ export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
 export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
 export WINEDEBUG='err+all'
 if [ "${ST_DEBUG:-0}" = 1 ]; then
-    export WINEDEBUG='err+all,warn+d3d8,warn+wined3d'
+    export WINEDEBUG='err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'
 fi
 # Full game runs without a diagnostic timeout, from its asset directory.
 case "${ST_CPU_MODE:-interpreter}" in

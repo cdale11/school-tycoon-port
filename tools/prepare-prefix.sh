@@ -7,22 +7,28 @@ export WINEPREFIX="$prefix_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
 export BOX64_PATH="$prefix_root:$prefix_wine/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$prefix_root/runtime/x86_64:$prefix_wine/lib/wine/x86_64-unix"
-export WINEDLLOVERRIDES='winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='
+media_root="$prefix_root"
+. "$prefix_root/media-env.sh"
 export WINEDEBUG=err+all,warn+module,trace+loaddll
 unset LD_PRELOAD ST_EGL_TARGET WAYLAND_DISPLAY SDL_VIDEODRIVER
 mkdir -p "$prefix_root/logs" "$prefix_root/runtime"
 prefix_pending="$prefix_root/runtime/prefix-repair-pending"
 prefix_verified="$prefix_root/runtime/prefix-32bit-verified"
+prefix_media_verified="$prefix_root/runtime/prefix-media-verified"
+test -f "$prefix_root/st-media-ready.exe" || { printf '%s\n' 'Missing media helper; extract the complete package.' >&2; exit 1; }
+prefix_media_id=$(sha256sum "$prefix_root/st-media-ready.exe" | awk '{print $1}')
 prefix_ready=true
-if [ -f "$prefix_pending" ] || [ ! -f "$prefix_verified" ]; then prefix_ready=false; fi
+if [ -f "$prefix_pending" ] || [ ! -f "$prefix_verified" ] || [ ! -f "$prefix_media_verified" ] ||
+   [ "$(cat "$prefix_media_verified" 2>/dev/null || :)" != "$prefix_media_id" ]; then prefix_ready=false; fi
 for prefix_dll in wow64.dll wow64cpu.dll wow64win.dll kernel32.dll kernelbase.dll ntdll.dll; do
     if [ ! -s "$WINEPREFIX/drive_c/windows/system32/$prefix_dll" ]; then prefix_ready=false; fi
 done
-for prefix_dll in kernel32.dll kernelbase.dll ntdll.dll cmd.exe; do
+for prefix_dll in kernel32.dll kernelbase.dll ntdll.dll cmd.exe dmloader.dll dmime.dll dmusic.dll dmsynth.dll dsound.dll mmdevapi.dll dmband.dll dmcompos.dll dmstyle.dll dmscript.dll dswave.dll vbscript.dll; do
     if [ ! -s "$WINEPREFIX/drive_c/windows/syswow64/$prefix_dll" ]; then prefix_ready=false; fi
 done
+if [ ! -f "$prefix_root/runtime/directmusic-ready" ] || ! sh "$prefix_root/prepare-directmusic.sh" --check; then prefix_ready=false; fi
 if [ "$prefix_ready" = true ]; then
-    printf '%s\n' 'Previously verified 32-bit Wine prefix is ready.'
+    printf '%s\n' 'Previously verified PE32 CPU/media prefix is ready.'
     exit 0
 fi
 if [ -z "${DISPLAY:-}" ]; then
@@ -66,14 +72,16 @@ trap 'exit 143' HUP TERM
 restore_prefix_modules
 # Existing registries already came through wineboot. Re-running full update
 # invokes failing Active Setup registrations (advpack) before CPU validation.
-# Only a genuinely new prefix needs the bootstrap here.
+# Only a genuinely new prefix needs initialization. Do not force -u after
+# Wine has already performed its automatic first-run INF registration.
 if [ ! -s "$WINEPREFIX/system.reg" ] || [ ! -s "$WINEPREFIX/user.reg" ]; then
-    if timeout -s TERM -k 5s 300s "$prefix_root/box64" "$prefix_wine/bin/wine" \
-        "$prefix_wine/lib/wine/x86_64-windows/wineboot.exe" -u; then
-        printf '%s\n' 'Initial Wine prefix update exited successfully; verifying the runtime next.'
+    printf '%s\n' 'Initial Wine bootstrap: allowing up to 600 seconds for first-run registration.'
+    if timeout -s TERM -k 5s 600s "$prefix_root/box64" "$prefix_wine/bin/wine" \
+        "$prefix_wine/lib/wine/x86_64-windows/wineboot.exe" --init; then
+        printf '%s\n' 'Initial Wine prefix initialization exited successfully; verifying the runtime next.'
     else
         prefix_status=$?
-        printf 'Initial Wine prefix update failed: %s. Existing prefix data is preserved.\n' "$prefix_status"
+        printf 'Initial Wine prefix initialization failed: %s. Existing prefix data is preserved.\n' "$prefix_status"
         exit "$prefix_status"
     fi
 else
@@ -115,6 +123,24 @@ if [ "$prefix_status" != 0 ] || ! tr -d '\r' < "$prefix_root/logs/prefix-32.stdo
     done
     exit 1
 fi
+# Replace media DLLs only while this prefix's Wine server is stopped.
+cleanup_prefix
+sh "$prefix_root/prepare-directmusic.sh"
+media_root="$prefix_root"
+. "$prefix_root/media-env.sh"
+printf '%s\n' 'Registering and checking PE32 DirectMusic/DirectSound classes (up to 180 seconds).'
+if timeout -s TERM -k 5s 180s "$prefix_root/box64" "$prefix_wine/bin/wine" \
+    "$prefix_root/st-media-ready.exe" > "$prefix_root/logs/prefix-media.stdout.txt" 2> "$prefix_root/logs/prefix-media.txt"; then
+    prefix_media_status=0
+else
+    prefix_media_status=$?
+fi
+cat "$prefix_root/logs/prefix-media.txt" "$prefix_root/logs/prefix-media.stdout.txt"
+if [ "$prefix_media_status" != 0 ] || ! tr -d '\r' < "$prefix_root/logs/prefix-media.stdout.txt" | grep -qx ST-PREFIX-MEDIA-PASS; then
+    printf '32-bit media readiness failed: %s. The game was not launched.\n' "$prefix_media_status"
+    exit 1
+fi
 : > "$prefix_verified"
+printf '%s\n' "$prefix_media_id" > "$prefix_media_verified"
 rm -- "$prefix_pending"
-printf '%s\n' '32-bit Wine prefix verified; continuing to the game.'
+printf '%s\n' '32-bit Wine CPU/media prefix verified; continuing to the game.'

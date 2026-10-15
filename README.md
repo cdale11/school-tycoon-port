@@ -6,6 +6,9 @@ actual Mali device is not yet certified.**
 
 ## Download and use
 
+[Fresh installation instructions](docs/fresh-install.md) ·
+[Second audit and fresh emulator results](docs/fresh-validation.md)
+
 [Download school-tycoon-handheld.tar.gz](releases/school-tycoon-handheld.tar.gz).
 Stop the game and extract it into `/userdata/roms/ports/`, replacing included
 files. Keep existing game data, saves and the Wine prefix. The archive contains

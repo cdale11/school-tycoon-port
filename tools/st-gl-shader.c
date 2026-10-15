@@ -67,6 +67,16 @@ void st_glLinkProgram(unsigned program) {
     unsigned shaders[8], main_id = 0, output_id = 0;
     char *main_source = NULL, *output_source = NULL;
     int vertices = 0;
+    /* Joining supports eight attachments, but fallback must restore every
+     * cached original, including shaders beyond the first eight. */
+    if(total>8 && total<=65536) {
+        unsigned *all=malloc((size_t)total*sizeof(*all));
+        if(all) {
+            get_attached(program,total,&count,all);
+            st_source_before_link(program,count,all);
+            free(all);link_program(program);return;
+        }
+    }
     get_attached(program, 8, &count, shaders);
     st_source_before_link(program, count, shaders);
     if(total<2 || total>8) {link_program(program);return;}
@@ -90,7 +100,7 @@ void st_glLinkProgram(unsigned program) {
     }
     if (vertices != 2 || !main_source || !output_source) goto fallback;
     const char *function = strstr(output_source, "void setup_vs_output(");
-    if (!strchr(function, '{')) goto fallback;
+    if (!function || !strchr(function, '{')) goto fallback;
     size_t main_length = strlen(main_source), function_length = strlen(function);
     char *joined = malloc(main_length + function_length + 2);
     if (!joined) goto fallback;

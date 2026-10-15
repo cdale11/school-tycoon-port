@@ -33,6 +33,10 @@ fi
     cat /etc/os-release 2>/dev/null || :
     awk '/^(MemTotal|MemAvailable|SwapTotal|SwapFree|CmaTotal|CmaFree):/' /proc/meminfo
     df -Pk "$game_root"
+    printf '%s\n' '=== Native audio inventory ==='
+    cat /proc/asound/cards 2>/dev/null || :
+    ls -l /dev/snd /usr/lib/libasound.so.2 /usr/lib/libpulse.so.0 2>/dev/null || :
+    if [ -n "${PULSE_SERVER:-}" ]; then printf '%s\n' 'Pulse server override is configured.'; fi
     if [ -f "$game_root/gamedata/SchoolTycoon.exe" ]; then sha256sum "$game_root/gamedata/SchoolTycoon.exe"; fi
     printf 'Runtime build: '; cat "$game_root/BUILD-ID.txt" 2>/dev/null || :
     printf 'Debug: %s; CPU request: %s\n' "${ST_DEBUG:-0}" "${ST_CPU_MODE:-interpreter}"

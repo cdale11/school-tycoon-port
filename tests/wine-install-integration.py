@@ -56,6 +56,7 @@ with tempfile.TemporaryDirectory(prefix='st-installer-') as tmp:
     ports.mkdir()
     game=ports/'school-tycoon'
     (game/'runtime').mkdir(parents=True)
+    subprocess.run(['cc','-O2',str(repo/'tools/st-lock.c'),'-o',str(game/'st-lock')],check=True)
     (game/'gamedata').mkdir()
     (game/'gamedata/SchoolTycoon.exe').touch()
     for n in (name,'weston-0.2'):
