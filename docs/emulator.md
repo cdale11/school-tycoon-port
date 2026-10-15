@@ -119,3 +119,31 @@ Not certified: native Mali/display launch, panel scaling, audio, physical input,
 large schools, long-term save compatibility or playable handheld speed. The
 chronological evidence and earlier failures are preserved in
 [emulator-history.md](emulator-history.md).
+
+### Audio probes used by the second audit
+
+`tools/emulator/windows-audio-probe.c` generates its own DirectSound PCM tone;
+it includes no original assets. `windows-music-probe.c` checks Performance8 audio
+initialization and optionally loads the user's original SchoolTycoon.spt when
+`ST_AUDIO_DIRECTORY` points to its Windows music-directory path. The music
+fixture shows its window and pumps messages during the playback observation.
+These probes are development tools and are excluded from the handheld archive.
+
+For a PE32 MinGW compiler, build the music fixture with:
+
+```sh
+i686-w64-mingw32-gcc -Wall -Wextra -Werror -Os -DINITGUID \
+  -fdata-sections -ffunction-sections -nostdlib -mwindows \
+  -Wl,--gc-sections -Wl,--strip-all -Wl,-e,_music_start \
+  -Wl,--no-insert-timestamp tools/emulator/windows-music-probe.c \
+  -lkernel32 -luser32 -lole32 -lgcc -o windows-music-probe.exe
+```
+
+A private PulseAudio null sink/monitor replaces the missing physical sound card
+for these tests. It does not certify speakers, headphones, Bluetooth, latency or
+native Scarab audio. Do not install that fixture server on a handheld. Analyze
+completed PCM16 captures with `tools/emulator/analyze-audio.py`; it rejects
+silence and tiny resampler dither and reports clipping. API success and a moving
+playback cursor do not by themselves establish correctly captured sound.
+Original recordings and screenshots remain private. See
+[fresh validation](fresh-validation.md) for separate builtin/native media results.

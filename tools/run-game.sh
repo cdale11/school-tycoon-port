@@ -154,7 +154,7 @@ export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 media_root="$window_root"
 . "$window_root/media-env.sh"
-export WINEDEBUG='err+all'
+export WINEDEBUG='-all,err+all'
 trap cleanup_window EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
@@ -233,9 +233,9 @@ export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
 export BOX64_LIBGL="$weston_dir/lib_aarch64/graphics/$window_gl/libGL.so.1"
 export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
 export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
-export WINEDEBUG='err+all'
+export WINEDEBUG='-all,err+all'
 if [ "${ST_DEBUG:-0}" = 1 ]; then
-    export WINEDEBUG='err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'
+    export WINEDEBUG='-all,err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'
 fi
 # Full game runs without a diagnostic timeout, from its asset directory.
 case "${ST_CPU_MODE:-interpreter}" in

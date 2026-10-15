@@ -40,14 +40,15 @@ Stripped package binary: `168b82ee8995f8235d872360966e8a19f253a82330d0917bdbdae5
 Its maximum glibc requirement is **2.39** (including libm), below Scarab's 2.40.
 The preceding documentation incorrectly listed 2.38 by overlooking libm.
 
-The CAB input bundle SHA256 is
+The native-media candidate is still under test; the public archive has not been
+promoted to include it. The CAB input bundle SHA256 is
 `5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`.
 It contains unchanged Debian ARM64 cabextract 1.9-3 and libmspack 0.11-1,
 licenses and complete corresponding Debian source archives. The package keeps
 those sources to satisfy redistribution requirements. Microsoft DLLs are not
 build inputs: the device fetches and verifies the pinned February 2010 DirectX
-redistributable, extracts nine allowlisted PE32 media DLLs and verifies each
-hash. Wine DirectSound is retained. The initial Microsoft URL is retired; the
+redistributable, extracts ten allowlisted PE32 media DLLs and verifies each
+hash. The native-media candidate now also tests native DirectSound; playback is not yet verified. The initial Microsoft URL is retired; the
 Winetricks mirror supplies the identically pinned archive.
 
 ## Runtime and memory

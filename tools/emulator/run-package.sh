@@ -36,7 +36,7 @@ cat > "$game/vm-fonts.conf" <<EOF
 EOF
 export FONTCONFIG_FILE="$game/vm-fonts.conf"
 export ST_EGL_TARGET=SchoolTycoon.exe
-export WINEDEBUG="${ST_VM_WINEDEBUG:-err+all}"
+export WINEDEBUG="${ST_VM_WINEDEBUG:--all,err+all}"
 media_root="$game"
 . "$game/media-env.sh"
 export BOX64_DYNAREC=0 BOX64_LOG=0

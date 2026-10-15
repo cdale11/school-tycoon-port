@@ -21,7 +21,7 @@ static void report(const char *text) {
 static void fail(const char *name,HRESULT status) {
     char hex[11]="0x00000000";
     for(unsigned i=0;i<8;i++)hex[9-i]="0123456789abcdef"[((unsigned)status>>(4*i))&15];
-    report("Media readiness failed: ");report(name);report(" ");report(hex);report("\r\n");
+    report("Media readiness failed: ");report(name?name:"(default)");report(" ");report(hex);report("\r\n");
     ExitProcess(1);
 }
 static void ensure_value(const char *path,const char *name,const char *value) {
@@ -42,6 +42,18 @@ void media_start(void) {
         HMODULE module=LoadLibraryA(libraries[i]);
         if(!module)fail(libraries[i],HRESULT_FROM_WIN32(GetLastError()));
         HRESULT (WINAPI *registration)(void)=(HRESULT (WINAPI *)(void))(void *)GetProcAddress(module,"DllRegisterServer");
+        if(!registration && !lstrcmpA(libraries[i],"dsound.dll")) {
+            /* The pinned native DirectSound exports DllGetClassObject but no
+             * DllRegisterServer. Populate only missing WoW64 COM mappings. */
+            static const char *keys[]={
+                "Software\\Classes\\CLSID\\{47D4D946-62E8-11CF-93BC-444553540000}\\InprocServer32",
+                "Software\\Classes\\CLSID\\{3901CC3F-84B5-4FA4-BA35-AA8172B8A09B}\\InprocServer32"};
+            for(unsigned j=0;j<sizeof(keys)/sizeof(keys[0]);j++) {
+                ensure_value(keys[j],NULL,"dsound.dll");
+                ensure_value(keys[j],"ThreadingModel","Both");
+            }
+            FreeLibrary(module);continue;
+        }
         if(!registration)fail(libraries[i],HRESULT_FROM_WIN32(GetLastError()));
         HRESULT status=registration();
         if(FAILED(status))fail(libraries[i],status);

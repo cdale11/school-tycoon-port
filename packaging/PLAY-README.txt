@@ -51,7 +51,7 @@ AUDIO
 Wine uses the firmware native audio backend; volume/mute/output still apply.
 The launcher preserves an existing per-user PulseAudio connection when creating
 its private display session. First setup downloads the checksum-pinned legacy
-DirectMusic redistributable (about 105 MiB), verifies nine extracted media DLLs,
+DirectMusic redistributable (about 105 MiB), verifies ten extracted media DLLs,
 and registers/checks 13 PE32 COM classes. This checks registration, not actual
 speaker playback. Game audio validation remains incomplete; see the fresh
 validation report. The port does not implement rumble.

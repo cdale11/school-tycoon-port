@@ -59,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
   shutil.copyfile(repo/source,root/target)
  source_files=sorted((repo/'tools').glob('st-*.c'))+[repo/'tools/run-game.sh',repo/'tools/prepare-directmusic.sh',repo/'tools/media-env.sh',repo/'tools/sample-session.sh',repo/'tools/prepare-prefix.sh',repo/'tools/prepare-wine.sh',repo/'packaging/School Tycoon.sh']
  source_id=sha(b''.join(str(f.relative_to(repo)).encode()+b'\0'+f.read_bytes()+b'\0' for f in source_files))
- (game/'BUILD-ID.txt').write_text('handheld-20261014 sources-sha256 '+source_id+'\n')
+ (game/'BUILD-ID.txt').write_text('handheld-20261015 sources-sha256 '+source_id+'\n')
  (game/'BUILD-NOTICES.txt').write_text('Box64 MIT: unchanged upstream revision 45f85efc52d7bd3a3c8642bfc5093ce7932f6c23, -O2 -DNDEBUG, symbols stripped.\nhttps://github.com/ptitSeb/box64/tree/45f85efc52d7bd3a3c8642bfc5093ce7932f6c23\nOwn helper sources and MIT license:\nhttps://github.com/cdale11/school-tycoon-port/tree/main/tools\nDebian cabextract 1.9-3 (GPL) / libmspack 0.11-1 (LGPL): unchanged ARM64 binaries; licenses and corresponding sources under runtime/cabextract.\nMicrosoft legacy DirectMusic: extracted from checksum-verified DirectX February 2010 redistributable on the device; not bundled.\nWine 10.0 LGPL: downloaded unchanged and checksum verified; not bundled.\nhttps://github.com/Kron4ek/Wine-Builds/releases/tag/10.0\nhttps://gitlab.winehq.org/wine/wine/-/tree/wine-10.0\nWeston/Crusty/GL4ES: reused from the installed PortMaster runtime; not bundled.\nlibgcc: license and source provenance under runtime/x86_64.\n')
  files=sorted(f for f in root.rglob('*') if f.is_file())
  (game/'SHA256SUMS').write_text(''.join(sha(f.read_bytes())+'  '+str(f.relative_to(root))+'\n' for f in files))

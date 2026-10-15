@@ -16,6 +16,7 @@ c7ef00e4f266b88d65a93ee043d990ede09668a2c356896f5d488831dd62505e  dmstyle.dll
 eb164cc9722e4a04d11bd77b7b98c57a7b76fc5564abbf35c5ee693c1b7571fa  dmsynth.dll
 33b4ffc6c91536fb5e8d3699ba50086b7dcc3853436c8ba95d235f0e380aae07  dmusic.dll
 73174f7c2d273f0a371fa76abd3057be4d103aea4ccb087999d972ddadb4d82a  dswave.dll
+11fdb7fae1b407a081003308bdaaac6bbb5f50ba9b0f852de8322a1b1c7ce8a5  dsound.dll
 HASHES
 }
 check() { [ -d "$dest" ] && (cd "$dest"; manifest | sha256sum -c -) >/dev/null 2>&1; }
@@ -77,4 +78,4 @@ done
 check
 printf '%s\n' "$sdk_hash" > "$root/runtime/directmusic-ready"
 rm -f "$root/runtime/prefix-media-verified"
-printf '%s\n' 'Verified native DirectMusic installed; Wine DirectSound and firmware remain unchanged.'
+printf '%s\n' 'Verified native DirectMusic installed; Wine WinMM supplies Linux audio; firmware remains unchanged.'

@@ -59,4 +59,4 @@ with tempfile.TemporaryDirectory(prefix='st-directmusic-') as temporary:
     assert run().returncode == 0
     assert not archive.exists()
     assert not list(runtime.glob('.directmusic-stage.*'))
-    print('PASS: real nine-DLL hashes, extraction failure rollback, symlink-target/save preservation, backups and offline reuse')
+    print('PASS: real ten-DLL hashes, extraction failure rollback, symlink-target/save preservation, backups and offline reuse')

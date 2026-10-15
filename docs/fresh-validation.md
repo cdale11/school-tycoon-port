@@ -141,9 +141,12 @@ preservation, backups and reuse without a download or extractor. The native
 media set passed thirteen PE32 COM class checks including VBScript.
 
 The native-media original game rendered the main menu, Play menu, Instant Action
-chooser and new-school loading screen. A 66.764-second menu capture was entirely
-silent (peak 0, RMS 0). Original-game sound is **not verified**. Classroom loading,
-in-game effects/music and final-package clean installation remain in progress.
+chooser, new-school loading screen and the rendered Farmland school scene. A 66.764-second menu capture was entirely
+silent (peak 0, RMS 0). Original-game sound is **not verified**. The new-school scene was reached with about 609 MiB game RSS and zero process
+swap; this excludes the VM desktop and sound server. An isolated 68.755-second
+in-game capture was also silent. Actual-game simulated Fn/Guide + Start exit
+passed again (intentional game status 143). Final-package clean installation
+and original sound remain in progress.
 Do not interpret this candidate as a production-ready or guaranteed handheld
 release.
 
@@ -152,3 +155,47 @@ the real SDL control helper and original game process. Intentional TERM was
 recorded as game status 143; the launcher integration treats user exit normally.
 Physical Fn mapping is unverified. Previous scene/save/Day-3 results belong to
 the earlier build and are not substituted for fresh native-media gameplay.
+
+## Media initialization failure isolated by an owned probe
+
+A new owned PE32 DirectMusic fixture calls Performance8::InitAudio and can load
+and initialize the original script privately. With the nine native media DLLs
+and Wine DirectSound, class construction succeeds but InitAudio fails with
+E_NOINTERFACE (0x80004002). A mixed stack retaining builtin dmime/dmusic/dmsynth
+passes InitAudio but native script Init also fails with E_NOINTERFACE. Keeping
+only dmusic or dmsynth builtin did not resolve the initialization failure.
+These probe failures are distinct from silent recordings and explain why COM
+registration cannot be called an audio playback test. The mixed teardown also
+hit a native PulseAudio assertion in the VM; it is retained as a failure.
+
+Native DirectSound from the same pinned redistributable is under private test;
+it has not been selected for the public package. No successful game-audio
+result or production-ready claim is made.
+
+The next private trial added verified native DirectSound from that same archive
+(SHA256 11fdb7fae1b407a081003308bdaaac6bbb5f50ba9b0f852de8322a1b1c7ce8a5).
+With all ten native DLLs, the owned probe passes InitAudio. Original script
+loading/playback remains under test; initialization alone is not a sound pass.
+The native DSOUND DLL has no DllRegisterServer export; the candidate helper
+provides only missing standard PE32 DirectSound COM mappings in that case.
+
+The ten-DLL native stack also passed original script Init, volume assignment
+and DM_music_menu CallRoutine in the owned fixture. Its 201.823-second monitor
+capture was entirely silent. The fixture window was hidden, so this is not a
+conclusive foreground-game playback result. A separate native-DirectSound tone
+passed API/cursor checks and produced output (peak 32768, 129962 nonzero samples)
+but also 41584 clipped samples, unlike the earlier builtin-DirectSound tone.
+That output must not be called sound-as-intended; clipping needs investigation.
+
+A further exact-candidate clean test starts from archive SHA256
+`d57c219f133e4795e112769112d8070a36efcda272673b01b9909779284290d5`.
+The preceding active package, prefix and installed Wine are deleted. Assets are
+recopied from the read-only uploaded source, excluding settings.dat; saved-games
+is checked empty. Only checksum-pinned download archives are retained. This
+run tests the packaged ten-DLL installer and helper rather than manual DLL copies.
+
+The clean VM initially stopped at the package's 2 GiB free-space check before
+Wine installation. Its task-owned virtual data disk was enlarged from 4 to
+6 GiB and ext4 grown online; CPU/RAM remain unchanged. The same clean candidate
+then resumes from the verified download cache, with no installed Wine or prefix
+from an earlier game run. The storage gate was not bypassed.

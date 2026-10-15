@@ -9,6 +9,10 @@ actual Mali device is not yet certified.**
 [Fresh installation instructions](docs/fresh-install.md) ·
 [Second audit and fresh emulator results](docs/fresh-validation.md)
 
+The second audit found unresolved original-game audio failures. Native-media
+changes are under test in source; the public release archive has not been
+promoted to that experimental build.
+
 [Download school-tycoon-handheld.tar.gz](releases/school-tycoon-handheld.tar.gz).
 Stop the game and extract it into `/userdata/roms/ports/`, replacing included
 files. Keep existing game data, saves and the Wine prefix. The archive contains
