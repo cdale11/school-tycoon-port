@@ -114,9 +114,24 @@ only the verified Wine download was reused. This archive excludes the native
 installer, CAB runtime and source bundle. It passed wineboot, actual PE32 execution, all 13 builtin media classes and
 desktop readiness without the native experiment, then launched the original
 executable. Its media marker ends in :builtin. These results are separate from
-the previous native-prefix comparison. The test sink is unmuted at 100%. The clean default run renders the original animated intro, Cat Daddy splash
+the previous native-prefix comparison. The test sink and School Tycoon stream are unmuted at 100%. The clean default run renders the original animated intro, Cat Daddy splash
 and main menu with no native-media files installed; a separate capture remains
-noise-level during that observation. A new-school load is checked separately.
+noise-level during that observation. The clean default also loads and renders a new Farmland school at Day 0, with
+no students. Observed scene RSS is approximately 611–613 MiB; the captured
+process high-water value is approximately 626 MiB, with zero process swap.
+These are process/VM observations, not whole-handheld or Mali memory estimates.
+The current run also creates NewSave.sts (203440 bytes) through the game UI;
+reload is not repeated in this final audit. The save SHA256 is
+97c44268445e1f8f99eff1a2854bbec4bb99da524cc80e7d1160761fc89b6378.
+Simulated Guide/Fn + Start then exits this exact clean game session successfully
+through the real SDL helper (intentional game status 143). The native fixture
+also checks movement, clicks, Start alone and held-button release. Physical Fn
+mapping is not certified.
+
+The clean default capture spans 2408.630 seconds across startup/menus and the
+new-school test. It contains only 379 noise-level samples (peak 1, zero clipped
+samples), so it fails the silence gate. This does not establish correctly
+working game audio. The earlier unmuted-slider comparison also failed.
 
 ## Runtime provenance and preservation
 
@@ -140,3 +155,9 @@ No obvious rumble/vibration/force-feedback strings were found. The readme's
 joystick-calibration workaround concerns scrolling, not haptics. These binary
 observations are not source-code proof against a hidden path. The port injects
 mouse/keyboard input and does not implement haptics.
+
+A supplementary native-host comparison was attempted with an isolated Wine
+prefix and verified Debian audio tools. Even the restored-prefix PE32 cmd.exe
+control crashes on that host, including outside the sandbox. Consequently no
+original-game audio conclusions are taken from that off-target environment.
+The ARM64 guest's PE32 and media gates pass independently.

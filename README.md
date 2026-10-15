@@ -60,6 +60,11 @@ use the handheld archive for the current game build.
 
 ## Evidence and remaining limits
 
+The current fresh VM audit reaches a new Farmland school and writes a new save;
+simulated Fn/Guide + Start exits the actual game. Scene RSS is about 611–613 MiB,
+with an observed 626 MiB process high-water value and no process swap. Original
+game audio fails the capture check. This remains a development candidate.
+
 - Actual handheld, earlier tests: Box64 execution, Wine interpreter Windows
   commands, native Mali EGL/GLES pixels and a Windows GDI window. Earlier
   Direct3D game startup failed; the current graphics fixes have not been
