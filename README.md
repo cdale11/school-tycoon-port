@@ -9,9 +9,9 @@ actual Mali device is not yet certified.**
 [Fresh installation instructions](docs/fresh-install.md) ·
 [Second audit and fresh emulator results](docs/fresh-validation.md)
 
-The second audit found unresolved original-game audio failures. Native-media
-changes are under test in source; the public release archive has not been
-promoted to that experimental build.
+The second audit found unresolved original-game audio failures. The failed
+native-media experiment is excluded from the default build. See the fresh
+validation report for separate rendering, controls and audio results.
 
 [Download school-tycoon-handheld.tar.gz](releases/school-tycoon-handheld.tar.gz).
 Stop the game and extract it into `/userdata/roms/ports/`, replacing included
@@ -80,6 +80,8 @@ board and software graphics. QEMU cannot reproduce H700/Mali-G31, its closed
 driver, panel, audio or buttons; this is not a complete or 1:1 handheld emulator.
 
 ## Development
+
+[Cloud setup and regression checks](docs/cloud-setup.md).
 
 - [Final package validation and limits](docs/final-validation.md)
 - [Build inputs, package contents and memory settings](docs/handheld-build.md)

@@ -1,212 +1,138 @@
-# Second audit and fresh emulator validation — 2026-10-14/15
+# Second audit and fresh VM validation — 2026-10-15
 
-This report distinguishes code regressions, fresh installation, original-game
-behavior and physical hardware. No build is claimed to be 100 percent bug-free,
-and this VM cannot certify native RG34XXSP graphics/audio or performance.
+**A production-ready full port is not established.** The native-media candidate
+passes installation, PE32 execution, COM and desktop gates, but its full-game
+audio test fails and its observed display remains black. The release archives
+have not been promoted to that experimental build. No version is claimed to be
+100 percent bug-free or certain to work on physical RG34XXSP hardware.
 
-## Second-pass changes
+## Audit fixes
 
-| Finding | Fix and evidence |
+| Finding | Change and verification |
 | --- | --- |
-| Fallback linking restored only eight shader attachments. | Restore all attachments before fallback; the ninth-attachment regression fails with the preceding helper and passes after the change. |
-| Startup/shutdown deadlines used wall time. | Read monotonic uptime; a frozen-wall-clock regression reproduces the preceding shutdown hang and passes after the change. |
-| Private Wayland runtime could hide an existing per-user PulseAudio server. | Preserve its socket before replacing XDG_RUNTIME_DIR; integration tests cover automatic preservation and explicit PULSE_SERVER precedence. |
-| Desktop readiness was published before retirement timer setup. | Acquire the timer before publishing readiness. |
-| Initial Wine setup timed out in the clean ARM64 VM. | First attempt failed the 300-second gate before game launch. Fresh bootstrap uses --init instead of forcing a subsequent -u and allows a bounded 600 seconds; partial test state was deleted for the next run. |
-| VM helpers assumed old game/prefix/runtime/font paths. | Fresh mode targets the extracted package and new prefix; click/exit helpers accept ST_VM_PACKAGE. Font configuration references that runtime. |
+| Fallback shader linking restored only eight attachments. | Restore every attachment before fallback; the ninth-attachment regression reproduces the old failure and passes after the fix. |
+| Startup and shutdown used wall-clock deadlines. | Use monotonic uptime; the frozen-clock shutdown regression now passes. |
+| Private display setup could hide the existing PulseAudio socket. | Preserve the socket before replacing XDG_RUNTIME_DIR; test automatic preservation and explicit override precedence. |
+| Desktop readiness preceded retirement-timer creation. | Create the timer before publishing readiness. |
+| A genuinely fresh Wine prefix exceeded the old 300-second gate. | Use wineboot --init with a bounded 600 seconds. Delete partial test state before the new run. |
+| PE32 media classes were absent although 64-bit registration existed. | Register and instantiate 13 PE32 classes, including MMDeviceEnumerator and VBScript. Require the helper's status and exact marker; invalidate verification when the helper changes or required modules disappear. |
+| The media-ready marker alone did not select a valid media stack. | Verify the pinned DLL set and repair missing marker state. COM readiness is explicitly distinguished from playback. |
+| Wine error-only flags retained default fixme channels. | Explicitly disable all channels before enabling errors; launcher regression checks the effective flags. |
+| VM tools retained old game/runtime/font paths. | Fresh and resume modes select the extracted package. Clear preloads before producing font XML; click helpers use package-local font configuration. |
 
-A defensive shader-function pointer check was added during GCC analysis.
-The warning arose from repeated string matching; it was not a reproduced crash.
-GCC analyzer compilation passes for all eight owned native helper translation
-units. Source/uniform cache regressions pass under AddressSanitizer and
-UndefinedBehaviorSanitizer. Upstream vendor source remains unchanged.
+The source-cache test covers 1000 pending-deletion cycles, ID reuse and shared
+shader switching. Source/uniform tests pass with AddressSanitizer and UBSan.
+GCC analyzer compilation passes for eight owned native helper translation units.
+Launcher, prefix recovery, Wine recovery, session lock, entry, log rotation,
+GLX lifetime, EGL ownership, build-integrity and audio-analysis tests pass.
+The defensive shader-function pointer guard addresses an analyzer warning;
+that warning was not a reproduced crash. Vendor Box64/GL4ES source is unchanged.
 
 ## Fresh-test provenance
 
-Prior guest gamedata and the working prefix were archived to a private host
-backup, read fully to verify the archive, and removed from the active guest.
-Old diagnostic prefixes and Wine were removed. Untouched uploaded ST assets were
-copied to a new package directory; original SAVED_GAMES is empty. Wine was
-freshly extracted by the packaged installer from the checksum-pinned archive.
-The offline VM reused only that verified download, not installed Wine or an old
-prefix. Native graphics libraries and virtual X displays are emulator
-infrastructure. Software GLES substitutes for Mali; older KNULLI userspace
-substitutes for exact Scarab firmware.
+The preceding active game and prefix were backed up privately. Active old
+prefixes, installed Wine and game files were removed; original uploaded assets
+were recopied from the read-only source. The final clean test omits settings.dat
+and checks SAVED_GAMES empty. Earlier settings screens showed zero effects/music sliders, but the same
+observation recurs after generating default settings. Silence is therefore not
+attributed solely to an imported PC profile.
 
-All four native packaged framebuffer/shader/uniform/FPE probes pass in ARM64.
-The first fresh prefix attempt failed its 300-second gate and is retained as a
-failure. The revised attempt started without a prefix or verification marker.
-Its completed results follow below.
+Only checksum-verified download archives were reused. Wine was freshly extracted
+by the packaged installer. The 4 GiB virtual data disk first failed the package's
+2 GiB free-space gate; it was enlarged to 6 GiB and ext4 grown online. The storage
+gate was retained. RAM and CPU configuration did not change.
 
-## Audio method
-
-The VM has no physical sound card. A private PulseAudio null sink and monitor
-capture provide a real native audio server for Wine. A generated calibration
-tone was captured with peak 3999 and 13000 nonzero samples at stereo 22050 Hz.
-This validates capture, not game audio. Game recordings stay private and are
-not shipped. Nonzero PCM proves output, not every sound, synchronization or
-physical speaker behavior.
-
-## Rumble
-
-No rumble/force-feedback support was found in the original executable, its two
-bundled DLLs or supplied readme. None imports DirectInput or XInput. None of the
-21 checked standard DirectInput interface/class/effect GUIDs occurs in the main
-executable. No obvious force-feedback, vibration or rumble strings were found.
-The readme mentions joystick calibration as a scrolling workaround; that does
-not establish haptics. These are binary/document observations, not source-code
-proof against a hidden path. The port injects keyboard/mouse input and does not
-implement haptics.
-
-The revised genuinely new prefix completed initial Wine registration within
-the 600-second gate. Its subsequent command and game checks are recorded
-separately; registry creation alone is not a gameplay pass.
-
-The new prefix then passed the actual PE32 command gate with
-`ST-PREFIX32-PASS`, and the packaged verifier created its ready marker and
-removed the repair-pending marker. This used the real ARM64 Box64/Wine runtime,
-not a stand-in shell command.
-
-The packaged temporary desktop helper wrote ST-DESKTOP-READY and retired
-automatically after the original School Tycoon window appeared. The original
-executable then started with early native EGL initialization. Rendering and
-audio observations are assessed separately below. All ten integration suites
-(source cache, uniform cache, EGL ownership, build integrity, session lock,
-entry, logger, launcher, prefix recovery and GLX lifetime) passed.
-
-## Additional audio failure found by the clean test
-
-The game's PE32 DirectMusic loader failed with CLSID
-`{D2AC2892-B39B-11D1-8704-00600893B1BD}` not registered. The corresponding
-64-bit class existed, but the 32-bit registration did not. A 178.78-second
-monitor capture contained only silence (zero nonzero samples). The game was
-stopped; this is an audio failure, not a successful sound check.
-
-The new owned PE32 media helper registers the pinned Wine media DLLs in the
-correct architecture and instantiates thirteen media COM classes. Prefix
-readiness now requires its exact success marker as well as the CPU gate.
-Failed status or a missing marker prevents gameplay. Its verified marker is
-keyed to the helper hash, and missing core media DLLs trigger recovery.
-The helper exits before gameplay and stays out of the steady-state memory
-footprint. Subsequent real runtime results are recorded separately.
-
-The separate actual PE32 DirectSound probe also failed with MMDeviceEnumerator
-CLSID `{BCDE0395-E52F-467C-8E3D-C4579291692E}` unregistered. That DLL/class is
-now included in the targeted media readiness check. This explains why testing
-command execution and graphics alone did not establish sound readiness.
-
-After targeted registration, all twelve actual PE32 COM class checks passed.
-The separate DirectSound fixture passed playback/cursor checks. Its native
-monitor capture contained 72906 nonzero samples, peak 3470 and zero clipped
-samples at stereo 22050 Hz. This proves the Wine-to-native-audio path with the
-owned tone fixture; it is not yet a claim about original-game music.
-
-The small media helper is approximately 6 KiB after discarding unused GUID sections and
-link symbols. It is not resident during gameplay. Original assets contain PCM
-and Microsoft ADPCM waveform data, including embedded WAVE chunks in music
-segments; no proprietary system GM/DLS bank is added to the package.
-
-A serial-observed clock check measured 10.08 seconds of guest uptime over
-9.92 seconds on the host (including serial latency). No large timer-rate
-distortion was observed. CPU execution and software rendering still differ
-from the handheld.
-
-The emulator font-config producer also exposed preload diagnostics contaminating
-its generated XML. It now clears preloads before generating configuration; the
-active fixture file was corrected before CPU/media and game readiness. This
-was a test-infrastructure defect, and is included in the emulator cleanup.
-
-## Scripted media compatibility and current native trial
-
-Wine 10.0 DirectMusic script CallRoutine and variable methods are stubs; the
-original SchoolTycoon.spt uses VBScript. Wine wave-track ordinary Play has
-implementation, while other paths have stubs. Neither successful COM construction
-nor a generated DirectSound tone proves original-game audio.
-
-The original uploaded PC settings muted music and effects. Initial silent
-captures cannot attribute silence solely to Wine. After raising both volumes,
-a menu/effect capture was also silent. The fresh-install guide now explicitly
-omits the old settings.dat when a default-settings installation is wanted.
-
-The retired official DirectX URL returned 404. The Winetricks mirror downloaded
-the February 2010 redistributable successfully and matched SHA256
-`f6d191e89a963d7cca34f169d30f49eab99c1ed3bb92da73ec43617caaa1e93f`.
-Nine allowlisted native PE32 DirectMusic DLLs are under test, retaining Wine
-DirectSound. No Microsoft DLLs or original game assets are published.
-
-The actual ARM64 extractor installed all nine DLLs with matching individual
-hashes, and --check passed. Host integration independently verifies real CAB
-extraction, extraction-failure preservation, prefix symlink-target/save
-preservation, backups and reuse without a download or extractor. The native
-media set passed thirteen PE32 COM class checks including VBScript.
-
-The native-media original game rendered the main menu, Play menu, Instant Action
-chooser, new-school loading screen and the rendered Farmland school scene. A 66.764-second menu capture was entirely
-silent (peak 0, RMS 0). Original-game sound is **not verified**. The new-school scene was reached with about 609 MiB game RSS and zero process
-swap; this excludes the VM desktop and sound server. An isolated 68.755-second
-in-game capture was also silent. Actual-game simulated Fn/Guide + Start exit
-passed again (intentional game status 143). Final-package clean installation
-and original sound remain in progress.
-Do not interpret this candidate as a production-ready or guaranteed handheld
-release.
-
-The preceding Wine-only fresh run passed simulated Fn/Guide + Start through
-the real SDL control helper and original game process. Intentional TERM was
-recorded as game status 143; the launcher integration treats user exit normally.
-Physical Fn mapping is unverified. Previous scene/save/Day-3 results belong to
-the earlier build and are not substituted for fresh native-media gameplay.
-
-## Media initialization failure isolated by an owned probe
-
-A new owned PE32 DirectMusic fixture calls Performance8::InitAudio and can load
-and initialize the original script privately. With the nine native media DLLs
-and Wine DirectSound, class construction succeeds but InitAudio fails with
-E_NOINTERFACE (0x80004002). A mixed stack retaining builtin dmime/dmusic/dmsynth
-passes InitAudio but native script Init also fails with E_NOINTERFACE. Keeping
-only dmusic or dmsynth builtin did not resolve the initialization failure.
-These probe failures are distinct from silent recordings and explain why COM
-registration cannot be called an audio playback test. The mixed teardown also
-hit a native PulseAudio assertion in the VM; it is retained as a failure.
-
-Native DirectSound from the same pinned redistributable is under private test;
-it has not been selected for the public package. No successful game-audio
-result or production-ready claim is made.
-
-The next private trial added verified native DirectSound from that same archive
-(SHA256 11fdb7fae1b407a081003308bdaaac6bbb5f50ba9b0f852de8322a1b1c7ce8a5).
-With all ten native DLLs, the owned probe passes InitAudio. Original script
-loading/playback remains under test; initialization alone is not a sound pass.
-The native DSOUND DLL has no DllRegisterServer export; the candidate helper
-provides only missing standard PE32 DirectSound COM mappings in that case.
-
-The ten-DLL native stack also passed original script Init, volume assignment
-and DM_music_menu CallRoutine in the owned fixture. Its 201.823-second monitor
-capture was entirely silent. The fixture window was hidden, so this is not a
-conclusive foreground-game playback result. A separate native-DirectSound tone
-passed API/cursor checks and produced output (peak 32768, 129962 nonzero samples)
-but also 41584 clipped samples, unlike the earlier builtin-DirectSound tone.
-That output must not be called sound-as-intended; clipping needs investigation.
-
-A further exact-candidate clean test starts from archive SHA256
+The ten-DLL candidate archive has SHA256
 `d57c219f133e4795e112769112d8070a36efcda272673b01b9909779284290d5`.
-The preceding active package, prefix and installed Wine are deleted. Assets are
-recopied from the read-only uploaded source, excluding settings.dat; saved-games
-is checked empty. Only checksum-pinned download archives are retained. This
-run tests the packaged ten-DLL installer and helper rather than manual DLL copies.
+A second build is byte-for-byte identical. The clean run passed wineboot, the
+actual PE32 command gate, all ten DLL hashes, all 13 media class checks and the
+private desktop gate. It then launched the original executable, selected Low
+settings automatically and reached DirectMusic search-path setup.
 
-The clean VM initially stopped at the package's 2 GiB free-space check before
-Wine installation. Its task-owned virtual data disk was enlarged from 4 to
-6 GiB and ext4 grown online; CPU/RAM remain unchanged. The same clean candidate
-then resumes from the verified download cache, with no installed Wine or prefix
-from an earlier game run. The storage gate was not bypassed.
+The VM has four Cortex-A53 cores, approximately 1 GiB RAM, 4 KiB pages, 39-bit
+address space, kernel 4.9.170 and glibc 2.40. It uses an older KNULLI userspace,
+a virtual board, software GLES and virtual displays. It cannot reproduce the
+H700/Mali driver, panel, physical sound hardware, button wiring or execution
+speed. A clock comparison observed 10.08 seconds of guest uptime over 9.92
+host seconds; that does not make TCG a real-time CPU or audio model.
 
-The exact ten-DLL candidate passed a second reproducible build with identical
-archive SHA256. The clean installation completed wineboot and the actual PE32
-command check, then extracted and verified all ten native DLLs using the packaged
-ARM64 CAB runtime. The class-readiness and game checks follow separately.
+## Observed game and graphics results
 
-The tone fixture has since been made explicit about requesting a PCM16 primary
-buffer; the reported clipped native recording used its preceding default-primary
-version. Its dominant nonzero levels were approximately +/-3000 with 8-bit-like
-quantization, plus negative-full-scale samples. The amended fixture is compiled
-but its output is not substituted for that failed-quality recording.
+The earlier fresh Wine-only run rendered the intro, main menu, settings and
+Instant Action chooser. A separate nine-native-DLL trial (retaining builtin
+DirectSound) rendered the new Farmland scene, paused at Day 0 with no students,
+at approximately 609 MiB game RSS and zero process swap. It passed simulated
+Guide/Fn + Start exit through the real SDL helper and game process; intentional
+termination was status 143. Physical Fn mapping remains unverified.
+
+Those are distinct from the ten-DLL clean test. Earlier classroom/save/Day-3
+results belong to the preceding build and are not substituted for this run.
+The framebuffer, shader, uniform and FPE probes pass in ARM64. The Box64 and
+three graphics libraries in the ten-DLL candidate are byte-identical to the
+binaries used for those probes.
+
+## Audio evidence
+
+The VM uses a private PulseAudio null sink/monitor because it has no physical
+sound card. Do not install that server fixture on a handheld. Captures remain
+private. The analyzer rejects silence and tiny resampler dither and optionally
+rejects a specified fraction of clipped samples.
+
+| Stack / test | Observed result |
+| --- | --- |
+| Native capture calibration | Generated tone captured; peak 3999. |
+| Builtin Wine media, after PE32 registration repair | Owned DirectSound tone API/cursor check passes; capture has 72906 nonzero samples, peak 3470 and no clipped samples. This is not original-game music proof. |
+| Original game, initial and post-unmute trials | Silent captures. Settings screens showed zero sliders; the later default-settings screen does too. Volume and initialization are checked separately. |
+| Nine native media DLLs with builtin DirectSound | All 13 classes construct, but the owned Performance8::InitAudio probe fails E_NOINTERFACE. |
+| Mixed builtin performance/core/synth with native scripting | InitAudio succeeds, but native script Init fails E_NOINTERFACE. One mixed-probe teardown also hits a PulseAudio assertion. |
+| Ten native DLLs, including native DirectSound | Owned InitAudio, original script loading, script Init, volume assignment and menu CallRoutine succeed. The old hidden-window fixture's 201.823-second capture is silent. API success is not playback proof. |
+| Native DirectSound tone, old default-primary fixture | API/cursor pass; 129962 nonzero samples and 41584 negative-full-scale samples. Quality fails. The revised fixture requests a PCM16 primary buffer but its new output has not replaced this observation. |
+| Ten-DLL full game, isolated capture before debugger intervention | 565.000 seconds; 3440 nonzero samples, 3256 full-scale (94.65% of nonzero samples). Almost entirely silence plus an artifact; fails the clipping gate. |
+
+The full-game native stack opens a native Pulse stream and has 11 threads, but
+Wine also reports a 60-second wait on WINMM_Device.lock. This establishes a
+lock-wait failure, not proof of a permanent deadlock or a hardware result. The
+observed display remained black. Debugger attempts could not obtain a valid
+backtrace under this Box64/WoW64 stack. The game later exited status 84 during
+that intervention; it is not reported as an unassisted crash before debugging.
+
+Wine 10 script CallRoutine/variable methods have stubs. Its ordinary wave-track
+Play has implementation while other paths have stubs. The builtin-media comparison with identical files/settings/graphics renders the
+animated intro, Cat Daddy logo, main menu and settings screen. This isolates the
+native-media black-screen regression. The default build now forces builtin media
+and excludes the experimental installer/CAB tools. Media-mode changes invalidate
+readiness; tests cover opt-in, opt-out and missing experimental tools.
+Its 804.039-second recording contained only 336 noise-level samples (peak 1),
+including the interval after raising both sliders. It passed simulated Fn/Guide
++ Start exit again. Original-game music, effects and synchronization are not
+certified.
+
+A fresh default-package installation is now running from archive SHA256
+`f5086dfc270d8cc8589581ccb61189f38b70502c7e878f6da4e14a8d4f012a09`.
+The native-containing prefix, installed Wine and game files were removed again;
+only the verified Wine download was reused. This archive excludes the native
+installer, CAB runtime and source bundle. Its pure-builtin readiness results are
+assessed separately from the previous native-prefix comparison.
+
+## Runtime provenance and preservation
+
+The retired official DirectX URL returns 404. The Winetricks mirror supplied the
+February 2010 redistributable with SHA256
+`f6d191e89a963d7cca34f169d30f49eab99c1ed3bb92da73ec43617caaa1e93f`.
+The candidate extracts ten allowlisted PE32 DLLs and verifies each hash. No
+Microsoft DLLs or original assets are published. The ARM64 CAB tools are
+unchanged Debian binaries with licenses and complete corresponding sources.
+Real extraction tests cover failure preservation, directory rejection,
+symlink-target/save preservation, backups and reuse without another download.
+Native DirectSound lacks DllRegisterServer; the helper provides only missing
+standard PE32 DirectSound COM mappings in that case.
+
+## Original rumble support
+
+No rumble/force-feedback support was found in the executable, its two bundled
+DLLs or supplied readme. None imports DirectInput/XInput; none of 21 checked
+standard DirectInput class/interface/effect GUIDs occurs in the main executable.
+No obvious rumble/vibration/force-feedback strings were found. The readme's
+joystick-calibration workaround concerns scrolling, not haptics. These binary
+observations are not source-code proof against a hidden path. The port injects
+mouse/keyboard input and does not implement haptics.

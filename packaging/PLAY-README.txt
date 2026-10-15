@@ -50,11 +50,12 @@ directory until its prefix and Wine runtime have been backed up/moved.
 AUDIO
 Wine uses the firmware native audio backend; volume/mute/output still apply.
 The launcher preserves an existing per-user PulseAudio connection when creating
-its private display session. First setup downloads the checksum-pinned legacy
-DirectMusic redistributable (about 105 MiB), verifies ten extracted media DLLs,
-and registers/checks 13 PE32 COM classes. This checks registration, not actual
-speaker playback. Game audio validation remains incomplete; see the fresh
-validation report. The port does not implement rumble.
+its private display session. The PE32 helper registers and checks 13 media COM
+classes. Registration is not proof of playback: original-game audio remains
+unverified and Wine 10 scripted music has incomplete implementation. The native
+DirectMusic experiment caused a black-screen/audio regression and is excluded
+from this package. No DirectX download or CAB extractor is needed by this build.
+The port does not implement rumble.
 
 DIAGNOSTICS
 Logs live in school-tycoon/logs/. launcher.txt: installer and package checks.

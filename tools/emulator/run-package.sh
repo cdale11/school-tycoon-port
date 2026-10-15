@@ -67,6 +67,8 @@ fi
 # Bootstrap may have installed native media; reload the exact game overrides.
 media_root="$game"
 . "$game/media-env.sh"
+# Optional isolated runtime comparison; never read by the handheld launcher.
+if [ -n "${ST_VM_MEDIA_OVERRIDES:-}" ]; then export WINEDLLOVERRIDES="$ST_VM_MEDIA_OVERRIDES"; fi
 # Match production's temporary desktop readiness helper before applying GL hooks.
 (cd "$pipes"; exec "$game/box64" "$wine_dir/bin/wine" "$game/st-desktop-ready.exe") >"/userdata/$log.desktop.txt" 2>&1 &
 desktop_pid=$!

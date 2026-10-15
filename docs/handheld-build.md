@@ -15,7 +15,6 @@ verified; other binaries are rebuilt from this repository's sources.
 ```sh
 python3 tools/build-handheld.py \
   --box64 /path/to/box64-opt-build/box64 \
-  --cab-runtime build-inputs/cab-runtime.tar.gz \
   --runtime-base releases/school-tycoon-play.tar.gz \
   --cc /path/to/aarch64-linux-gnu-gcc-14 \
   --sysroot /path/to/arm64-sysroot \
@@ -40,16 +39,19 @@ Stripped package binary: `168b82ee8995f8235d872360966e8a19f253a82330d0917bdbdae5
 Its maximum glibc requirement is **2.39** (including libm), below Scarab's 2.40.
 The preceding documentation incorrectly listed 2.38 by overlooking libm.
 
-The native-media candidate is still under test; the public archive has not been
-promoted to include it. The CAB input bundle SHA256 is
-`5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`.
-It contains unchanged Debian ARM64 cabextract 1.9-3 and libmspack 0.11-1,
-licenses and complete corresponding Debian source archives. The package keeps
-those sources to satisfy redistribution requirements. Microsoft DLLs are not
-build inputs: the device fetches and verifies the pinned February 2010 DirectX
-redistributable, extracts ten allowlisted PE32 media DLLs and verifies each
-hash. The native-media candidate now also tests native DirectSound; playback is not yet verified. The initial Microsoft URL is retired; the
-Winetricks mirror supplies the identically pinned archive.
+The default archive excludes the failed native-media experiment, its installer,
+CAB binaries and source bundle. It forces builtin media even if an earlier
+experiment left native DLLs in the prefix. Readiness is keyed to helper hash
+and selected media mode, so changing modes requires verification again.
+
+For development only, `--experimental-directmusic --cab-runtime
+build-inputs/cab-runtime.tar.gz` includes the experiment's tools. It is still
+inactive until experimental-directmusic.txt contains 1. This combination is not
+recommended for the handheld: the full-game test failed despite passing COM
+and script API checks. The CAB input hash is
+`5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`;
+it contains unchanged Debian ARM64 CAB tools, licenses and corresponding sources.
+See the fresh validation report for DLL download/hash provenance and failures.
 
 ## Runtime and memory
 

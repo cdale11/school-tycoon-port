@@ -53,15 +53,15 @@ The original auxiliary files belong alongside the executable. The repository
 does not include the original executable or assets. Do not copy the previously
 modified handheld gamedata, Wine prefix, cpu-mode.txt or runtime directory.
 For default settings, omit the old `settings.dat` and leave `Data/SAVED_GAMES`
-empty. The uploaded PC profile had both music and effects muted; copying that
-profile carries its mute and graphics settings into a fresh port installation.
+empty. The VM also showed zero effects/music sliders after default settings were
+regenerated, so silence is not attributed solely to the imported PC profile.
+Check the in-game sliders, but raising them is not a verified audio fix.
 
 PortMaster must be installed with its Weston runtime available. Keep at least
 2 GiB free after copying game assets. Connect Wi-Fi for the initial verified
-Wine and legacy DirectMusic downloads (the latter is about 105 MiB).
-The legacy runtime is hash-verified and extracted locally; Microsoft DLLs are not
-included in the repository. Keep the verified cache for repair without another
-download. Refresh KNULLI's game list and launch School Tycoon under Ports,
+Wine download. Keep the verified cache for repair without another download.
+The default package uses builtin Wine media; the failed native-media experiment
+is excluded. Refresh KNULLI's game list and launch School Tycoon under Ports,
 or run `sh "/userdata/roms/ports/School Tycoon.sh"` over SSH.
 
 First-run prefix initialization allows up to ten minutes; later 32-bit execution

@@ -16,7 +16,7 @@ prefix_pending="$prefix_root/runtime/prefix-repair-pending"
 prefix_verified="$prefix_root/runtime/prefix-32bit-verified"
 prefix_media_verified="$prefix_root/runtime/prefix-media-verified"
 test -f "$prefix_root/st-media-ready.exe" || { printf '%s\n' 'Missing media helper; extract the complete package.' >&2; exit 1; }
-prefix_media_id=$(sha256sum "$prefix_root/st-media-ready.exe" | awk '{print $1}')
+prefix_media_id="$(sha256sum "$prefix_root/st-media-ready.exe" | awk '{print $1}'):$media_stack"
 prefix_ready=true
 if [ -f "$prefix_pending" ] || [ ! -f "$prefix_verified" ] || [ ! -f "$prefix_media_verified" ] ||
    [ "$(cat "$prefix_media_verified" 2>/dev/null || :)" != "$prefix_media_id" ]; then prefix_ready=false; fi
@@ -26,7 +26,9 @@ done
 for prefix_dll in kernel32.dll kernelbase.dll ntdll.dll cmd.exe dmloader.dll dmime.dll dmusic.dll dmsynth.dll dsound.dll mmdevapi.dll dmband.dll dmcompos.dll dmstyle.dll dmscript.dll dswave.dll vbscript.dll; do
     if [ ! -s "$WINEPREFIX/drive_c/windows/syswow64/$prefix_dll" ]; then prefix_ready=false; fi
 done
-if [ ! -f "$prefix_root/runtime/directmusic-ready" ] || ! sh "$prefix_root/prepare-directmusic.sh" --check; then prefix_ready=false; fi
+if [ "$media_stack" = native ]; then
+    if [ ! -f "$prefix_root/runtime/directmusic-ready" ] || ! sh "$prefix_root/prepare-directmusic.sh" --check; then prefix_ready=false; fi
+fi
 if [ "$prefix_ready" = true ]; then
     printf '%s\n' 'Previously verified PE32 CPU/media prefix is ready.'
     exit 0
@@ -125,7 +127,7 @@ if [ "$prefix_status" != 0 ] || ! tr -d '\r' < "$prefix_root/logs/prefix-32.stdo
 fi
 # Replace media DLLs only while this prefix's Wine server is stopped.
 cleanup_prefix
-sh "$prefix_root/prepare-directmusic.sh"
+if [ "$media_stack" = native ]; then sh "$prefix_root/prepare-directmusic.sh"; fi
 media_root="$prefix_root"
 . "$prefix_root/media-env.sh"
 printf '%s\n' 'Registering and checking PE32 DirectMusic/DirectSound classes (up to 180 seconds).'

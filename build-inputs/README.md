@@ -10,4 +10,5 @@ package and source hashes were checked through the signed indexes. See the
 bundle's PROVENANCE.txt for URLs and hashes. This free-software build input
 contains no Microsoft DLLs or original game assets.
 
-Pass `--cab-runtime build-inputs/cab-runtime.tar.gz` to build-handheld.py.
+This input is only needed with build-handheld.py --experimental-directmusic;
+it is excluded from the default handheld package.

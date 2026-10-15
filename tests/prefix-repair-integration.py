@@ -63,7 +63,7 @@ if (root/'fail').exists(): sys.exit(7)
     assert (system32/'wow64cpu.dll').read_text()=='keep-existing-dll'
     assert save.read_text()=='preserve-save'
     data=json.loads((root/'bootstrap.json').read_text())
-    assert data=={'args':[str(builtin/'wineboot.exe'),'--init'],'preload':None,'display':':123','cpu':'0','overrides':'winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='},data
+    assert data=={'args':[str(builtin/'wineboot.exe'),'--init'],'preload':None,'display':':123','cpu':'0','overrides':'dmband,dmcompos,dmime,dmloader,dmscript,dmstyle,dmsynth,dmusic,dsound,dswave=b;winewayland.drv=;iexplore.exe=;winemenubuilder.exe,mscoree,mshtml='},data
     (root/'fail').unlink()
     (root/'bad32').touch()
     rejected=run()
@@ -110,4 +110,16 @@ if (root/'fail').exists(): sys.exit(7)
     assert existing.returncode==0,(existing.stdout,existing.stderr)
     assert not (root/'bootstrap.json').exists()
     assert (root/'runtime/prefix-32bit-verified').exists()
+    assert not (root/'runtime/directmusic-ready').exists(), 'Default run installed experimental media'
+    (root/'experimental-directmusic.txt').write_text('1')
+    assert run().returncode==0
+    assert (root/'runtime/directmusic-ready').exists()
+    assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':native')
+    (root/'experimental-directmusic.txt').unlink()
+    assert run().returncode==0
+    assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':builtin')
+    (root/'prepare-directmusic.sh').unlink()
+    assert run().returncode==0, 'Default package requires experimental installer'
+    (root/'experimental-directmusic.txt').write_text('1')
+    assert run().returncode!=0, 'Developer experiment started without its installer'
 print('PASS: missing DLL restoration, existing DLL/save preservation, clean bootstrap, CPU/media failure gates, retry and verified reuse')

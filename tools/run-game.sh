@@ -154,6 +154,7 @@ export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"
 export BOX64_LD_LIBRARY_PATH="$window_root/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 media_root="$window_root"
 . "$window_root/media-env.sh"
+printf 'Media stack: %s\n' "$media_stack"
 export WINEDEBUG='-all,err+all'
 trap cleanup_window EXIT
 trap 'exit 130' INT
