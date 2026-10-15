@@ -24,6 +24,12 @@ build/prefix. The separate desktop helper exits when the game window appears.
 Logs identify setup, readiness and game launch phases.
 Concurrent launches are rejected automatically; no lock file deletion is needed.
 A controller-helper failure stops the game and is recorded in controls/game logs.
+Native graphics failure also stops the session rather than leaving a black screen.
+The native SDL/EGL surface now initializes before Wine's address reservations.
+This is a candidate fix for the reported Mali surface failure, not a confirmed
+physical-device pass. No KNULLI Quick Resume or boot-game settings are changed.
+When Quick Resume is enabled, KNULLI itself can arm a boot target before starting
+the port. See docs/handheld-display-audit.md for the audit and emulator limits.
 This is a compatibility launcher for the original game, not a rewritten engine.
 
 CONTROLS

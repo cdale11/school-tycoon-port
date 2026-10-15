@@ -21,5 +21,13 @@
     "audio",
     "physical controls"
   ],
-  "reported_counter_hz": 24000000
+  "reported_counter_hz": 24000000,
+  "reported_cma_total_kib": 65536,
+  "observed_failure_cma_free_kib": 2552,
+  "handheld_display_backend": "SDL mali-fbdev (not emulated by Mesa/X11)",
+  "required_fault_checks": [
+    "native-startup-integration.py",
+    "launcher-integration.py",
+    "firmware-settings-integration.py"
+  ]
 }

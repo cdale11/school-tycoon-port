@@ -80,6 +80,18 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
     result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=10)
     assert result.returncode==1
     assert 'Controller helper unavailable' in (root/'logs/game.txt').read_text()
+    # Reproduce the real handheld log while Wine remains alive. SDL failure
+    # must stop the owned process and let the frontend run its game-end hook.
+    script(root/'st-controls', '#!/bin/sh\ntrap "exit 1" TERM\nwhile :; do sleep 0.1; done\n')
+    (root/'game-stopped').unlink()
+    failure=box_source.replace('import signal,time\ndef stop',
+        'print("Could not create SDL Window: mali-fbdev: Can\\\'t create EGL window surface",flush=True)\nimport signal,time\ndef stop')
+    script(root/'box64',failure)
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=15)
+    assert result.returncode==1
+    assert 'phase=graphics-failed' in (root/'logs/game.txt').read_text()
+    assert (root/'game-stopped').exists()
+    assert not list((root/'logs').glob('.pipes.*'))
     # A desktop helper failure must stop before starting the original game.
     (root/'observed.json').unlink()
     broken=(root/'box64').read_text()

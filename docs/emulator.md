@@ -151,3 +151,7 @@ Original recordings and screenshots remain private. See
 QEMU TCG is not a real-time CPU-speed model. Mixer underruns and timing artifacts
 in this VM may differ from the physical device. Capture results remain evidence
 about the tested fixture, not guarantees about every audio path on Scarab.
+
+## Handheld-specific failure coverage
+
+Run `python3 tools/emulator/check-handheld-failures.py` in addition to software-rendered gameplay. The profile now includes the reported 64 MiB CMA budget; new boots use `cma=65536K`. See [display/Quick Resume audit](handheld-display-audit.md) for coverage and the limitations of the Mali substitute.

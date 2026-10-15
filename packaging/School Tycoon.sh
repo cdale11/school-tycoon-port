@@ -41,6 +41,11 @@ fi
     printf 'Runtime build: '; cat "$game_root/BUILD-ID.txt" 2>/dev/null || :
     printf 'Debug: %s; CPU request: %s\n' "${ST_DEBUG:-0}" "${ST_CPU_MODE:-interpreter}"
     ls -l /dev/mali0 /usr/lib/libEGL.so.1 /usr/lib/libGLESv2.so.2 /usr/lib/libSDL2-2.0.so.0 2>/dev/null || :
+    printf '%s\n' '=== Native display inventory (read only) ==='
+    for display_file in /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel /sys/class/graphics/fb0/rotate; do
+        if [ -r "$display_file" ]; then printf '%s: ' "$display_file"; cat "$display_file"; fi
+    done
+    printf 'SDL rotation=%s blitter-disabled=%s scaler=%s\n' "${SDL_ROTATION:-default}" "${SDL_BLITTER_DISABLED:-default}" "${SDL_HQ_SCALER:-default}"
 } > "$game_root/logs/system.txt" 2>&1
 if [ -f "$game_root/SHA256SUMS" ]; then
     (cd "$ports_dir"; sha256sum -c "$game_root/SHA256SUMS") || {

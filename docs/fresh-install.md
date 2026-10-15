@@ -1,5 +1,7 @@
 # Fresh installation on RG34XXSP / KNULLI Scarab
 
+For the 15 October display-startup update, **do not delete your game files, saves, Wine runtime or prefix**. Extract the complete updated archive over the existing port, replacing its launcher and packaged support files together. See [the display/Quick Resume audit](handheld-display-audit.md). The native Mali fix is a candidate, not a verified handheld success. This update does not change KNULLI Quick Resume or boot-game settings.
+
 The current build is a tested compatibility candidate, not a certified native
 handheld port. Emulator testing cannot establish that native Mali rendering,
 audio, physical controls or speed will work on your device.

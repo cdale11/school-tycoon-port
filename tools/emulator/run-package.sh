@@ -75,7 +75,9 @@ desktop_pid=$!
 uptime_seconds() { awk '{print int($1)}' /proc/uptime; }
 desktop_start=$(uptime_seconds)
 while ! grep -q '^ST-DESKTOP-READY' "$pipes/desktop-ready.txt" 2>/dev/null; do
-    if ! kill -0 "$desktop_pid" 2>/dev/null || [ "$(($(uptime_seconds)-desktop_start))" -ge 180 ]; then
+    # TCG is substantially slower than the handheld; allow the cold Wine
+    # services to start. Production keeps its separate 180-second deadline.
+    if ! kill -0 "$desktop_pid" 2>/dev/null || [ "$(($(uptime_seconds)-desktop_start))" -ge 600 ]; then
         printf '%s\n' 'VM package desktop readiness failed'; exit 1
     fi
     sleep 1
@@ -90,6 +92,15 @@ LD_PRELOAD="$preload" "$game/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe >"$p
 app_pid=$!
 printf '%s\n' "$app_pid" >"/userdata/$log.pid.txt"
 sh "$game/sample-session.sh" "$app_pid" "/userdata/$log.memory.csv" & telemetry_pid=$!
+while kill -0 "$app_pid" 2>/dev/null; do
+    if grep -Eq 'ST-GRAPHICS-FAILED|Failed to get a GL context for adapter' "/userdata/$log.stderr.txt" 2>/dev/null ||
+       grep -Eq 'Could not create SDL Window:|Could not create OpenGL Context:' "/userdata/$log.stdout.txt" 2>/dev/null; then
+        printf '%s\n' 'ST-VM-GRAPHICS-FAILED: native backend failed; this run is not a graphics pass'
+        printf '%s\n' 1 >"/userdata/$log.status.txt"
+        exit 1
+    fi
+    sleep 1
+done
 if wait "$app_pid"; then status=0; else status=$?; fi
 app_pid=
 printf '%s\n' "$status" >"/userdata/$log.status.txt"

@@ -1,5 +1,7 @@
 # Second audit and fresh VM validation — 2026-10-15
 
+This report records the preceding audit builds. For the newer display-startup package and exact archive hash, see [handheld display and Quick Resume audit](handheld-display-audit.md).
+
 **A production-ready full port is not established.** The native-media candidate
 passes installation, PE32 execution, COM and desktop gates, but its full-game
 audio test fails and its observed display remains black. The release archives

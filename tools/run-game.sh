@@ -267,6 +267,21 @@ game_pid=$!; game_birth=$(child_start "$game_pid")
 printf 'Game PID: %s; heap arenas: %s; csmt=0; debug=%s\n' "$game_pid" "$MALLOC_ARENA_MAX" "${ST_DEBUG:-0}"
 sh "$window_root/sample-session.sh" "$game_pid" "$window_root/logs/memory.csv" & telemetry_pid=$!; telemetry_birth=$(child_start "$telemetry_pid")
 while child_alive "$game_pid" "$game_birth"; do
+    if ! child_alive "$weston_pid" "$weston_birth"; then
+        session_phase=display-lost
+        printf '%s\n' 'Private display server stopped; ending the game session.'
+        exit 1
+    fi
+    # Crusty can continue after SDL window/context failure and leave Wine alive
+    # indefinitely. Return to the frontend so its normal game-end hooks run.
+    if grep -Eq 'ST-GRAPHICS-FAILED|Failed to get a GL context for adapter' "$window_root/logs/game-wine.txt" 2>/dev/null ||
+       grep -Eq 'Could not create SDL Window:|Could not create OpenGL Context:' "$window_root/logs/game-wine.stdout.txt" 2>/dev/null; then
+        session_phase=graphics-failed
+        printf '%s\n' 'Native graphics initialization failed; stopping this session. See game-wine logs.'
+        awk '/^(MemAvailable|CmaTotal|CmaFree):/' /proc/meminfo
+        dmesg 2>/dev/null | tail -n 80 > "$window_root/logs/kernel.txt" || :
+        exit 1
+    fi
     if [ -n "$desktop_pid" ] && ! child_alive "$desktop_pid" "$desktop_birth"; then
         if wait "$desktop_pid"; then
             printf '%s\n' 'Desktop readiness helper retired after game window creation.'

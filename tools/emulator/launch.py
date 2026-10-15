@@ -24,6 +24,9 @@ for setting in ('CONFIG_ARM64_4K_PAGES=y', 'CONFIG_ARM64_VA_BITS=39',
                 'CONFIG_HW_RANDOM=y', 'CONFIG_HW_RANDOM_VIRTIO=y'):
     if setting not in config.splitlines():
         parser.error(f'Kernel prerequisite missing: {setting}')
+for setting in ('CONFIG_CMA=y', 'CONFIG_DMA_CMA=y'):
+    if setting not in config.splitlines():
+        parser.error(f'Handheld graphics-memory prerequisite missing: {setting}')
 for name in ('linux-4.9.170/arch/arm64/boot/Image', 'initrd.gz',
              'rootfs.squashfs', 'data.ext4'):
     if not (vm / name).is_file():
@@ -35,7 +38,7 @@ command = [str(args.qemu.resolve()), '-machine', 'virt,gic-version=2,highmem=off
            '-m', str(profile['vm_ram_mib']), '-accel', 'tcg,thread=multi',
            '-kernel', str(vm / 'linux-4.9.170/arch/arm64/boot/Image'),
            '-initrd', str(vm / 'initrd.gz'),
-           '-append', 'console=ttyAMA0 rdinit=/init panic=0',
+           '-append', 'console=ttyAMA0 rdinit=/init panic=0 cma=' + str(profile['reported_cma_total_kib']) + 'K',
            '-drive', f'if=none,file={vm}/rootfs.squashfs,format=raw,readonly=on,id=root',
            '-device', 'virtio-blk-device,drive=root',
            '-drive', f'if=none,file={vm}/data.ext4,format=raw,id=data',

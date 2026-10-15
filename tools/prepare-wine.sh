@@ -39,7 +39,9 @@ if [ "$available_kb" -lt 2097152 ]; then
     exit 1
 fi
 wine_stage=$(mktemp -d "$runtime_root/runtime/.wine-stage.XXXXXX")
-trap 'rm -rf "$wine_stage"' EXIT HUP INT TERM
+trap 'rm -rf "$wine_stage"' EXIT
+trap 'exit 143' HUP TERM
+trap 'exit 130' INT
 mkdir -p "$runtime_root/runtime/downloads"
 wine_archive="$runtime_root/runtime/downloads/$wine_name.tar.xz"
 if [ -f "$wine_archive" ]; then
@@ -52,7 +54,8 @@ if [ -f "$wine_archive" ]; then
 fi
 if [ ! -f "$wine_archive" ]; then
     printf '%s\n' 'Downloading portable Wine 10.0...'
-    curl --fail --location --proto '=https' --tlsv1.2 --output "$wine_stage/$wine_name.tar.xz" "$wine_url"
+    curl --fail --location --proto '=https' --tlsv1.2 --connect-timeout 30 --max-time 600 \
+        --speed-time 60 --speed-limit 1024 --output "$wine_stage/$wine_name.tar.xz" "$wine_url"
     printf '%s  %s\n' "$wine_hash" "$wine_stage/$wine_name.tar.xz" | sha256sum -c -
     mv "$wine_stage/$wine_name.tar.xz" "$wine_archive"
 fi
