@@ -36,8 +36,10 @@ this repository. Verify the handheld archive against its entry in SHA256SUMS,
 then extract into `/userdata/roms/ports/`. For example, from your download folder:
 
 ```sh
-sha256sum school-tycoon-handheld.tar.gz
-tar -xzf school-tycoon-handheld.tar.gz -C /userdata/roms/ports/
+curl -fL -O https://raw.githubusercontent.com/cdale11/school-tycoon-port/main/releases/school-tycoon-handheld.tar.gz
+curl -fL -O https://raw.githubusercontent.com/cdale11/school-tycoon-port/main/releases/SHA256SUMS
+awk '$2 == "school-tycoon-handheld.tar.gz"' SHA256SUMS | sha256sum -c - &&
+    tar -xzf school-tycoon-handheld.tar.gz -C /userdata/roms/ports/
 ```
 
 Copy the contents of your original `ST` installation into

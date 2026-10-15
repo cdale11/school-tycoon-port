@@ -64,7 +64,7 @@ use the handheld archive for the current game build.
   commands, native Mali EGL/GLES pixels and a Windows GDI window. Earlier
   Direct3D game startup failed; the current graphics fixes have not been
   confirmed on Mali.
-- ARM64 VM: original intro/menus, classroom placement and save, Day 3 with
+- Earlier ARM64 VM builds: original intro/menus, classroom placement and save, Day 3 with
   eight students. Sustained scene runs stayed around 688–701 MiB game RSS with
   no process swap. This is not total device memory or a Mali memory estimate.
 - Integration checks: controller motion/clicks/input release/Fn exit, launcher
@@ -83,7 +83,7 @@ driver, panel, audio or buttons; this is not a complete or 1:1 handheld emulator
 
 [Cloud setup and regression checks](docs/cloud-setup.md).
 
-- [Final package validation and limits](docs/final-validation.md)
+- [Earlier package validation and limits](docs/final-validation.md)
 - [Build inputs, package contents and memory settings](docs/handheld-build.md)
 - [ARM64 VM fixtures and limitations](docs/emulator.md)
 - [Runtime findings](docs/target-runtime.md)

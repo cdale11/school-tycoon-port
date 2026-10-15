@@ -1,5 +1,7 @@
 # Previous package validation — 2026-10-14
 
+For the current audit and fresh-install results, see [fresh validation](fresh-validation.md).
+
 This records the package published at commit `945d7b0`, before the subsequent
 [code audit](code-audit.md). Its artifact hashes and gameplay measurements apply
 to that previous build. This is a release candidate. The tests below do not certify a playable native

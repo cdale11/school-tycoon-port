@@ -111,8 +111,12 @@ A fresh default-package installation is now running from archive SHA256
 `f5086dfc270d8cc8589581ccb61189f38b70502c7e878f6da4e14a8d4f012a09`.
 The native-containing prefix, installed Wine and game files were removed again;
 only the verified Wine download was reused. This archive excludes the native
-installer, CAB runtime and source bundle. Its pure-builtin readiness results are
-assessed separately from the previous native-prefix comparison.
+installer, CAB runtime and source bundle. It passed wineboot, actual PE32 execution, all 13 builtin media classes and
+desktop readiness without the native experiment, then launched the original
+executable. Its media marker ends in :builtin. These results are separate from
+the previous native-prefix comparison. The test sink is unmuted at 100%. The clean default run renders the original animated intro, Cat Daddy splash
+and main menu with no native-media files installed; a separate capture remains
+noise-level during that observation. A new-school load is checked separately.
 
 ## Runtime provenance and preservation
 
