@@ -92,6 +92,15 @@ with tempfile.TemporaryDirectory(prefix='st-session-') as tmp:
     assert 'phase=graphics-failed' in (root/'logs/game.txt').read_text()
     assert (root/'game-stopped').exists()
     assert not list((root/'logs').glob('.pipes.*'))
+    # Repeated runtime GPU errors must end the game, while preserving their
+    # initial diagnostics even if the rotating tail later fills up.
+    repeated=box_source.replace('import signal,time\ndef stop',
+        'print(("GL_OUT_OF_MEMORY GL_INVALID_FRAMEBUFFER_OPERATION\\n"*16),file=sys.stderr,flush=True)\nimport signal,time\ndef stop')
+    script(root/'box64',repeated)
+    result=subprocess.run(['sh',str(root/'run-game.sh'),'game'],env=env,timeout=15)
+    assert result.returncode==1
+    assert 'phase=rendering-failed' in (root/'logs/game.txt').read_text()
+    assert 'GL_OUT_OF_MEMORY' in (root/'logs/game-wine.startup.txt').read_text()
     # A desktop helper failure must stop before starting the original game.
     (root/'observed.json').unlink()
     broken=(root/'box64').read_text()

@@ -12,6 +12,7 @@
 
 static void *egl_library;
 static void *sdl_library;
+int st_gpu_warmup(void);
 static void fail_early(void) { fflush(stderr); _exit(1); }
 static int matching_target(void) {
     const char *target=getenv("ST_EGL_TARGET");
@@ -105,7 +106,11 @@ __attribute__((constructor)) static void prime_egl(void) {
         fprintf(stderr,"ST-GRAPHICS-FAILED: no native context/draw surface (EGL 0x%x)\n",get_error());
         fail_early();
     }
-    fputs("ST-GRAPHICS-READY: native surface and context created before Windows mappings\n",stderr);
+    if(!st_gpu_warmup()) {
+        fputs("ST-GRAPHICS-FAILED: native rendering warmup failed\n",stderr);
+        fail_early();
+    }
+    fputs("ST-GRAPHICS-READY: native surface, shader and pixel readback before Windows mappings\n",stderr);
 }
 /* EGLInitialize is not reference-counted. SDL owns graphics teardown; early
  * priming must not terminate its shared display during DSO destruction. Keep

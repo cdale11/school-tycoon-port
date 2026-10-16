@@ -11,7 +11,7 @@ if [ "${ST_SESSION_LOCKED:-}" != "$$" ]; then
     exec "$game_root/st-lock" "$game_root/.session.lock" sh "$0" "$@"
 fi
 # Retain one preceding attempt; rotate only launcher-owned log files.
-for log_name in launcher.txt game.txt game-weston.txt controls.txt; do
+for log_name in launcher.txt game.txt game-weston.txt controls.txt game-wine.startup.txt game-wine.stdout.startup.txt; do
     if [ -f "$game_root/logs/$log_name" ]; then
         mv "$game_root/logs/$log_name" "$game_root/logs/$log_name.previous"
     fi

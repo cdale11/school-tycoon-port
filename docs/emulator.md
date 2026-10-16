@@ -155,3 +155,14 @@ about the tested fixture, not guarantees about every audio path on Scarab.
 ## Handheld-specific failure coverage
 
 Run `python3 tools/emulator/check-handheld-failures.py` in addition to software-rendered gameplay. The profile now includes the reported 64 MiB CMA budget; new boots use `cma=65536K`. See [display/Quick Resume audit](handheld-display-audit.md) for coverage and the limitations of the Mali substitute.
+
+The GPU startup regression additionally supports a real Mesa GLES3 check:
+
+```sh
+python3 tests/gpu-warmup-integration.py /path/to/libGLESv2.so.2
+```
+
+This verifies shader/draw/readback and native state restoration. It is separate
+from the 14 dependency-light regression suites. The package runner preserves
+initial Wine output and rejects repeated allocation/framebuffer errors, just as
+the handheld runner does. Neither check substitutes for a Mali hardware test.

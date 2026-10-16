@@ -120,3 +120,50 @@ also passed during the candidate investigation.
 The exact-archive run also passed simulated Guide/Fn + Start exit through the
 unchanged SDL controller helper. Intentional termination returned status 143,
 and no SchoolTycoon process remained. Physical button wiring is unverified.
+
+## Follow-up: native shader and framebuffer failures
+
+The next handheld run passed surface creation but repeatedly reported
+`GL_OUT_OF_MEMORY`, `GL_INVALID_FRAMEBUFFER_OPERATION` and shader link failures.
+Process RSS was around 130 MiB with no process swap; these errors do not prove
+that the device exhausted its general-purpose RAM. Both rotating stderr logs
+had lost the initial failure. Waiting longer cannot repair this rendering loop.
+
+The new candidate exercises the native GLES3 shader compiler, a 2×2 framebuffer,
+and a draw/pixel readback immediately after surface creation, before Wine reserves
+its address space. Temporary objects are deleted and changed native GL state is
+restored. This tests a possible lazy driver-allocation problem; the supplied logs
+do **not** establish that cause. A failed warmup prevents game startup and records
+the stage, GL error and compiler/linker information.
+
+Two independent corrections apply regardless of that hypothesis:
+
+- Preserve the first 64 KiB of each Wine stream in `game-wine.startup.txt` and
+  `game-wine.stdout.startup.txt`, alongside bounded rotating tails.
+- End the owned game session after repeated allocation **and** framebuffer
+  failures (at least 16 of each in the current stderr log). Individual capability
+  probe rejections do not trigger this guard. There is no automatic retry.
+
+The VM runner now applies the same failure guard and preserves initial logs.
+Native Mesa tests verify real shader compilation, drawing, readback and restoration
+of deliberately altered GL state across three repetitions. The actual ARM64
+warmup probe also passed. An ARM64 framebuffer test passed with both GL4ES ARM
+workarounds forced on; they are therefore retained. These software tests cannot
+reproduce the proprietary Mali driver, ION or physical display ownership.
+
+The follow-up archive is 5,456,138 bytes, SHA256
+`780c0d9798ecf3cbe86d3291a3d926bb8ecbe213cbc28d2a8f4774ab126e4c4f`.
+Replace the complete package, including its manifest and build identifier; keep
+existing assets, saves, Wine and the prefix. This remains an unconfirmed physical
+GPU fix, not a certified playable release. Original-game audio remains unresolved.
+
+The exact follow-up archive passed the private desktop gate, native warmup and
+original main-menu rendering in the ARM64 VM with both ARM GL4ES framebuffer
+workarounds enabled. The captured menu was visually checked. Menu RSS was
+221164 KiB (about 216 MiB), with zero process swap. This is a menu test with
+software GLES, not a new full-school, audio or physical-handheld pass.
+
+Simulated Guide/Fn + Start also passed through the controller fixture with this
+archive: intentional exit status 143 and no remaining SchoolTycoon process.
+Physical button wiring remains unverified. All 14 host regression suites passed;
+the additional real GLES3 state-restoration test passed separately.

@@ -29,9 +29,10 @@ void init_backend(void){
 void *eglGetCurrentContext(void){return ready?(void*)2:0;}
 void *eglGetCurrentSurface(int s){return ready&&s==0x3059?(void*)3:0;}
 ''')
+ (r/'warmup-stub.c').write_text('#include <stdlib.h>\nint st_gpu_warmup(void){return getenv("ST_TEST_WARMUP_FAIL")==0;}\n')
  (r/'main.c').write_text('#include <stdio.h>\nint main(void){puts("WINDOWS-MAPPINGS-START");return 0;}\n')
  for args in [ ['cc','-shared','-fPIC',str(r/'native.c'),'-o',str(r/'native.so')],
-               ['cc','-Wall','-Wextra','-Werror','-shared','-fPIC',str(repo/'tools/st-egl-prime.c'),'-ldl','-o',str(r/'prime.so')],
+               ['cc','-Wall','-Wextra','-Werror','-shared','-fPIC',str(repo/'tools/st-egl-prime.c'),str(r/'warmup-stub.c'),'-ldl','-o',str(r/'prime.so')],
                ['cc',str(r/'main.c'),'-o',str(r/'SchoolTycoon.exe')]]:
   subprocess.run(args,check=True)
  env=dict(os.environ,ST_EGL_TARGET='SchoolTycoon.exe',CRUSTY_LIBEGL=str(r/'native.so'),CRUSTY_LIBSDL=str(r/'native.so'),ST_CRUSTY_LIBRARY=str(r/'native.so'),LD_PRELOAD=str(r/'prime.so'))
@@ -43,6 +44,9 @@ void *eglGetCurrentSurface(int s){return ready&&s==0x3059?(void*)3:0;}
   assert (b'WINDOWS-MAPPINGS-START' in run.stdout)==(not fail)
   assert (b'ST-GRAPHICS-READY' in run.stderr)==(not fail)
   assert (b'ST-GRAPHICS-FAILED' in run.stderr)==fail
+ run=subprocess.run([str(r/'SchoolTycoon.exe')],env=dict(env,ST_TEST_WARMUP_FAIL='1'),capture_output=True,timeout=5)
+ assert run.returncode==1 and b'WINDOWS-MAPPINGS-START' not in run.stdout
+ assert b'native rendering warmup failed' in run.stderr
  # Wine helpers must never initialize or own the presentation window.
  run=subprocess.run([str(r/'SchoolTycoon.exe')],env=dict(env,ST_EGL_TARGET='another.exe',ST_TEST_FAIL='1'),capture_output=True,timeout=5)
  assert run.returncode==0 and b'ST graphics:' not in run.stderr

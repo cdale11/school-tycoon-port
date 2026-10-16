@@ -14,7 +14,7 @@ unsigned eglTerminate(void *display){(void)display;terminated++;return 1;}
 __attribute__((destructor)) static void check(void){if(!initialized||terminated)_exit(87);}
 ''')
  (root/'main.c').write_text('int main(void){return 0;}\n')
- for command in [['cc','-shared','-fPIC',str(root/'egl.c'),'-o',str(root/'egl.so')],['cc','-shared','-fPIC',str(repo/'tools/st-egl-prime.c'),'-ldl','-o',str(root/'prime.so')],['cc',str(root/'main.c'),'-o',str(root/'SchoolTycoon.exe')]]:
+ for command in [['cc','-shared','-fPIC',str(root/'egl.c'),'-o',str(root/'egl.so')],['cc','-shared','-fPIC',str(repo/'tools/st-egl-prime.c'),str(repo/'tools/st-gpu-warmup.c'),'-ldl','-o',str(root/'prime.so')],['cc',str(root/'main.c'),'-o',str(root/'SchoolTycoon.exe')]]:
   subprocess.run(command,check=True)
  env=dict(os.environ,ST_EGL_TARGET='SchoolTycoon.exe',CRUSTY_LIBEGL=str(root/'egl.so'),LD_PRELOAD=str(root/'prime.so'))
  result=subprocess.run([str(root/'SchoolTycoon.exe')],env=env,capture_output=True,timeout=10)

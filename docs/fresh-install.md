@@ -88,7 +88,10 @@ still unverified. Use 800x600 and Low detail where available.
 The port uses Wine's native Linux audio backend. It does not add rumble or ship
 an audio server. Firmware volume/mute and selected output still apply. Native
 audio inventory is included in `logs/system.txt`; audio initialization failures
-are recorded in bounded Wine logs. Send the entire logs directory on failure.
+are recorded in bounded Wine logs. Send the entire logs directory on failure. The first 64 KiB of each Wine stream
+is retained in `game-wine.startup.txt` and `game-wine.stdout.startup.txt`.
+Repeated GPU allocation/framebuffer failures now end the session; waiting longer
+or deleting the Wine prefix is not a remedy for that failure.
 The emulator audio sink described in the validation report is a testing fixture
 and must not be installed on the handheld.
 

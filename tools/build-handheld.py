@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
   subprocess.run(command,check=True)
  compile(graphics/'libst-gl-present.so',['st-gl-present.c','st-gl-shader.c','st-gl-uniform.c','st-gl-source.c'],True)
  compile(graphics/'libst-glx-config.so',['st-glx-config.c'],True)
- compile(graphics/'libst-egl-prime.so',['st-egl-prime.c'],True)
+ compile(graphics/'libst-egl-prime.so',['st-egl-prime.c','st-gpu-warmup.c'],True)
  compile(game/'st-controls',['st-controls.c'])
  compile(game/'st-log',['st-log.c'])
  compile(game/'st-lock',['st-lock.c'])

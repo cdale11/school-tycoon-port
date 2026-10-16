@@ -1,6 +1,6 @@
 # School Tycoon for RG34XXSP
 
-Latest handheld logs showed a native Mali surface failure. The new startup candidate creates and verifies the native window before Wine mappings and exits cleanly on graphics failure. See the [display and Quick Resume audit](docs/handheld-display-audit.md). Physical display success remains unverified; this is still a development candidate.
+Latest handheld logs passed surface creation but failed native shader/framebuffer rendering. The new candidate warms up native GPU resources before Wine mappings, preserves initial logs, and stops repeated rendering failures. See the [display and Quick Resume audit](docs/handheld-display-audit.md). The Mali-specific cause and physical display success remain unverified; this is still a development candidate.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
 with PortMaster. **This is a handheld release candidate. A playable port on the

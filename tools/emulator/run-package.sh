@@ -84,8 +84,8 @@ while ! grep -q '^ST-DESKTOP-READY' "$pipes/desktop-ready.txt" 2>/dev/null; do
 done
 printf '%s\n' 'ST-PACKAGE-DESKTOP-READY'
 "$bb" mkfifo "$pipes/stdout" "$pipes/stderr"
-"$game/st-log" "/userdata/$log.stdout.txt" <"$pipes/stdout" & stdout_pid=$!
-"$game/st-log" "/userdata/$log.stderr.txt" <"$pipes/stderr" & stderr_pid=$!
+"$game/st-log" "/userdata/$log.stdout.txt" "/userdata/$log.stdout.startup.txt" <"$pipes/stdout" & stdout_pid=$!
+"$game/st-log" "/userdata/$log.stderr.txt" "/userdata/$log.stderr.startup.txt" <"$pipes/stderr" & stderr_pid=$!
 "$bb" rm -f "/userdata/$log.status.txt"
 cd "$data_dir"
 LD_PRELOAD="$preload" "$game/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe >"$pipes/stdout" 2>"$pipes/stderr" &
@@ -96,6 +96,13 @@ while kill -0 "$app_pid" 2>/dev/null; do
     if grep -Eq 'ST-GRAPHICS-FAILED|Failed to get a GL context for adapter' "/userdata/$log.stderr.txt" 2>/dev/null ||
        grep -Eq 'Could not create SDL Window:|Could not create OpenGL Context:' "/userdata/$log.stdout.txt" 2>/dev/null; then
         printf '%s\n' 'ST-VM-GRAPHICS-FAILED: native backend failed; this run is not a graphics pass'
+        printf '%s\n' 1 >"/userdata/$log.status.txt"
+        exit 1
+    fi
+    render_oom=$(grep -c 'GL_OUT_OF_MEMORY' "/userdata/$log.stderr.txt" 2>/dev/null || :)
+    render_fbo=$(grep -c 'GL_INVALID_FRAMEBUFFER_OPERATION' "/userdata/$log.stderr.txt" 2>/dev/null || :)
+    if [ "${render_oom:-0}" -ge 16 ] && [ "${render_fbo:-0}" -ge 16 ]; then
+        printf '%s\n' 'ST-VM-RENDERING-FAILED: repeated GPU allocation/framebuffer failures'
         printf '%s\n' 1 >"/userdata/$log.status.txt"
         exit 1
     fi

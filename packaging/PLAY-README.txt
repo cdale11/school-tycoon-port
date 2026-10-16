@@ -25,7 +25,9 @@ Logs identify setup, readiness and game launch phases.
 Concurrent launches are rejected automatically; no lock file deletion is needed.
 A controller-helper failure stops the game and is recorded in controls/game logs.
 Native graphics failure also stops the session rather than leaving a black screen.
-The native SDL/EGL surface now initializes before Wine's address reservations.
+The native SDL/EGL surface, shader compiler and a tiny draw/readback now run
+before Wine's address reservations. Initial graphics logs are preserved separately.
+Repeated GPU allocation/framebuffer failures stop the session automatically.
 This is a candidate fix for the reported Mali surface failure, not a confirmed
 physical-device pass. No KNULLI Quick Resume or boot-game settings are changed.
 When Quick Resume is enabled, KNULLI itself can arm a boot target before starting

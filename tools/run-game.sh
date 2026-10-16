@@ -257,8 +257,8 @@ controls_pid=$!; controls_birth=$(child_start "$controls_pid")
 test -x "$window_root/st-log"
 pipe_dir=$(mktemp -d "$window_root/logs/.pipes.XXXXXX")
 mkfifo "$pipe_dir/stdout" "$pipe_dir/stderr"
-"$window_root/st-log" "$window_root/logs/game-wine.stdout.txt" < "$pipe_dir/stdout" & stdout_pid=$!; stdout_birth=$(child_start "$stdout_pid")
-"$window_root/st-log" "$window_root/logs/game-wine.txt" < "$pipe_dir/stderr" & stderr_pid=$!; stderr_birth=$(child_start "$stderr_pid")
+"$window_root/st-log" "$window_root/logs/game-wine.stdout.txt" "$window_root/logs/game-wine.stdout.startup.txt" < "$pipe_dir/stdout" & stdout_pid=$!; stdout_birth=$(child_start "$stdout_pid")
+"$window_root/st-log" "$window_root/logs/game-wine.txt" "$window_root/logs/game-wine.startup.txt" < "$pipe_dir/stderr" & stderr_pid=$!; stderr_birth=$(child_start "$stderr_pid")
 cd "$window_root/gamedata"
 env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
     "$window_root/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe \
@@ -270,6 +270,16 @@ while child_alive "$game_pid" "$game_birth"; do
     if ! child_alive "$weston_pid" "$weston_birth"; then
         session_phase=display-lost
         printf '%s\n' 'Private display server stopped; ending the game session.'
+        exit 1
+    fi
+    # Wine capability probes can reject an individual format. Repeated native
+    # allocation AND framebuffer failures are different: this run cannot render.
+    render_oom=$(grep -c 'GL_OUT_OF_MEMORY' "$window_root/logs/game-wine.txt" 2>/dev/null || :)
+    render_fbo=$(grep -c 'GL_INVALID_FRAMEBUFFER_OPERATION' "$window_root/logs/game-wine.txt" 2>/dev/null || :)
+    if [ "${render_oom:-0}" -ge 16 ] && [ "${render_fbo:-0}" -ge 16 ]; then
+        session_phase=rendering-failed
+        printf '%s\n' 'Repeated GPU allocation/framebuffer failures; ending this run. Startup logs are preserved.'
+        dmesg 2>/dev/null | tail -n 80 > "$window_root/logs/kernel.txt" || :
         exit 1
     fi
     # Crusty can continue after SDL window/context failure and leave Wine alive
