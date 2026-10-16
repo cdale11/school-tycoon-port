@@ -172,3 +172,16 @@ real EGL release and rebinding across two threads. This fails against the old
 Crusty-only logical binding and passes with the native binding correction.
 `python3 tests/context-binding-integration.py` additionally verifies failed-bind
 propagation using a controlled native-library fixture.
+
+Set `ST_EXPECT_TEXTURE_READBACK=1` on the same probe to isolate the 4×4
+attached-texture update/clear/readback operation implicated by the handheld
+Wine adapter-discovery log. It checks both RGBA/unsigned-byte and
+BGRA/reversed-packed formats, reports errors at each stage, and compares every
+pixel against the expected clear color and native GLES readback. Translated
+readback runs first so a diagnostic native read cannot flush the failing
+operation in advance. Compile the probe with `-pthread -lX11 -ldl`.
+
+The current packaged helpers pass this probe on ARM64/Mesa (exit 0), including
+context handoff, shader linking and framebuffer copy. This does not reproduce
+or resolve the reported Mali failure. No new handheld package was issued for
+this diagnostic extension; the production runtime is unchanged.

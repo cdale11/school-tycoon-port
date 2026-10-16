@@ -99,6 +99,74 @@ int main(void) {
     LOAD(desktop, void, glFramebufferTexture2D, (unsigned, unsigned, unsigned, unsigned, int));
     LOAD(desktop, void, glClearColor, (float, float, float, float));
     LOAD(desktop, void, glClear, (unsigned));
+    if (getenv("ST_EXPECT_TEXTURE_READBACK")) {
+        /* Isolate the small attached-texture update/readback sequence seen in
+         * Wine adapter discovery. No Wine process or game assets are needed. */
+        LOAD(desktop, unsigned, glGetError, (void));
+        LOAD(desktop, void, glTexParameteri, (unsigned,unsigned,int));
+        LOAD(desktop, void, glTexSubImage2D, (unsigned,int,int,int,int,int,unsigned,unsigned,const void *));
+        LOAD(desktop, void, glGetTexImage, (unsigned,int,unsigned,unsigned,void *));
+        LOAD(desktop, unsigned, glCheckFramebufferStatus, (unsigned));
+        LOAD(desktop, void, glDeleteTextures, (int,const unsigned *));
+        LOAD(desktop, void, glDeleteFramebuffers, (int,const unsigned *));
+        void *gles=dlopen(getenv("SDL_VIDEO_GL_DRIVER"),RTLD_NOW|RTLD_NOLOAD);
+        if (!gles) return 20;
+        void (*native_read)(int,int,int,int,unsigned,unsigned,void*)=dlsym(gles,"glReadPixels");
+        unsigned (*native_error)(void)=dlsym(gles,"glGetError");
+        if (!native_read || !native_error) return 20;
+#define ST_CHECK(stage) do { unsigned e=glGetError(); \
+    printf("ST-TEXTURE stage=%s format=%s GL=0x%x\n",stage,format_name,e); \
+    if(e) return 21; } while(0)
+        for (int bgra=0;bgra<2;bgra++) {
+            const char *format_name=bgra?"BGRA/REV":"RGBA/UBYTE";
+            unsigned format=bgra?0x80e1:0x1908, type=bgra?0x8367:0x1401;
+            unsigned tex=0,fbo=0;
+            unsigned char pixels[64],native_pixels[64];
+            ST_CHECK("entry");
+            glGenTextures(1,&tex); glBindTexture(0x0de1,tex);
+            glTexParameteri(0x0de1,0x2801,0x2600); glTexParameteri(0x0de1,0x2800,0x2600);
+            glTexImage2D(0x0de1,0,0x8058,4,4,0,format,type,NULL);
+            ST_CHECK("allocate");
+            glGenFramebuffers(1,&fbo); glBindFramebuffer(0x8d40,fbo);
+            glFramebufferTexture2D(0x8d40,0x8ce0,0x0de1,tex,0);
+            unsigned status=glCheckFramebufferStatus(0x8d40);
+            ST_CHECK("attach");
+            if(status!=0x8cd5) { printf("ST-TEXTURE incomplete=0x%x\n",status); return 22; }
+            memset(pixels,17,sizeof(pixels));
+            glTexSubImage2D(0x0de1,0,0,0,4,4,format,type,pixels);
+            ST_CHECK("attached-update");
+            glClearColor(0.25f,0.5f,0.75f,1.0f); glClear(0x4000);
+            ST_CHECK("clear");
+            /* Read through GL4ES first: a native read must not accidentally
+             * flush/repair the exact operation we are trying to reproduce. */
+            memset(pixels,0,sizeof(pixels));
+            glGetTexImage(0x0de1,0,format,type,pixels);
+            unsigned translated_error=glGetError();
+            printf("ST-TEXTURE stage=get-texture format=%s GL=0x%x\n",format_name,translated_error);
+            memset(native_pixels,0,sizeof(native_pixels));
+            native_read(0,0,4,4,0x1908,0x1401,native_pixels);
+            unsigned error=native_error();
+            printf("ST-TEXTURE native-read GL=0x%x pixel=%u,%u,%u,%u\n",error,
+                native_pixels[0],native_pixels[1],native_pixels[2],native_pixels[3]);
+            if(translated_error) return 21;
+            if(error) return 23;
+            for(int i=0;i<64;i++) {
+                int component=i%4;
+                int expected[4]={64,128,191,255};
+                int translated=bgra && component!=3?2-component:component;
+                if(abs(native_pixels[i]-expected[component])>1 ||
+                   abs(pixels[i]-expected[translated])>1) {
+                    printf("ST-TEXTURE mismatch byte=%d native=%u translated=%u\n",i,native_pixels[i],pixels[i]);
+                    return 24;
+                }
+            }
+            glBindFramebuffer(0x8d40,0); glBindTexture(0x0de1,0);
+            glDeleteFramebuffers(1,&fbo); glDeleteTextures(1,&tex);
+            ST_CHECK("cleanup");
+        }
+#undef ST_CHECK
+        puts("ST-TEXTURE-READBACK-PASS: native and translated pixels agree for both formats");
+    }
     unsigned texture = 0, framebuffer = 0;
     glGenTextures(1, &texture);
     glBindTexture(0x0de1, texture);
