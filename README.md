@@ -1,6 +1,6 @@
 # School Tycoon for RG34XXSP
 
-Latest handheld logs confirm native Mali warmup passes, but subsequent GL4ES shader linking fails. The rendering problem remains unresolved. Failure-only shader-source reporting is enabled, and README text files no longer participate in startup checksum checks. See the [display and Quick Resume audit](docs/handheld-display-audit.md). This remains a development candidate, not a verified playable handheld port.
+The latest candidate disables GL4ES's legacy ARB assembly-program interface and explicitly selects Wine's GLSL backend, bypassing the failing ARB fog probe identified in the handheld shader report. Native bridge tests pass, but the earlier framebuffer error and physical black screen remain unconfirmed. See the [display and Quick Resume audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
 with PortMaster. **This is a handheld release candidate. A playable port on the

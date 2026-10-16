@@ -217,7 +217,10 @@ window_app_preload="$window_root/runtime/graphics/libst-glx-config.so:$window_ro
     window_app_preload="$window_root/runtime/graphics/libst-gl-present.so:$window_app_preload"
     window_gles=30
     # Crusty supplies one native context rather than GLX context switching.
-    export WINE_D3D_CONFIG=csmt=0 LIBGL_NOTEXARRAY=1
+    # Do not expose the emulated ARB assembly-program path: the handheld logs
+    # show its fog probe failing to link. Keep Wine on the GLSL backend.
+    export WINE_D3D_CONFIG=csmt=0,shader_backend=glsl LIBGL_NOTEXARRAY=1
+    export LIBGL_NOARBPROGRAM=1
 export ST_EGL_TARGET=SchoolTycoon.exe
 export CRUSTY_LIBEGL=/usr/lib/libEGL.so.1
 export CRUSTY_LIBSDL=/usr/lib/libSDL2-2.0.so.0

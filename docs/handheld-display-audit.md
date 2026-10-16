@@ -198,3 +198,36 @@ The rebuilt documentation/diagnostic update is 5,456,378 bytes, SHA256
 `b30d97b4d5190b3cf42401e5eae9fad5345a68d6fb47509e84c2d57b97d8eed8`. Entry, build-integrity, launcher and firmware-setting
 regressions passed. Internal archive checksums were verified. No new full-game
 or physical rendering success is claimed for this update.
+
+## GLSL-only candidate after shader report
+
+The next uploaded report confirms shader reporting is enabled. It identifies
+Wine's legacy ARB fog capability probe (`OPTION ARB_fog_linear`) as a failing
+link. Its converted source is a constant red output followed by linear fog;
+there is no compiler error text establishing why Mali rejects the link. Custom
+FPE links also fail. The first framebuffer readback error precedes this probe,
+so bypassing ARB does not by itself explain or prove a fix for all failures.
+
+The launcher now sets `LIBGL_NOARBPROGRAM=1`, using the pinned GL4ES runtime's
+supported option to stop advertising emulated ARB assembly programs. Wine is
+explicitly configured for `shader_backend=glsl` with `csmt=0`. The emulator runner
+uses the same settings. This removes the identified failing legacy probe path;
+it is a candidate workaround, not a confirmed physical black-screen fix.
+
+The ARM64 native bridge test now has an optional `ST_EXPECT_GLSL_ONLY=1` check.
+On the real pinned GL4ES/Crusty libraries with software GLES, it verified absence
+of both ARB assembly extensions, successfully compiled/linked a desktop GLSL
+program, then passed framebuffer pixel readback and binding restoration. Its
+exit status was zero. The launcher, README integrity and firmware-setting
+regressions also passed. No game assets, prefix or firmware settings are changed.
+
+The exact GLSL-only archive reached the original main menu in the ARM64 VM.
+The captured image was visually checked; Wine reported the GLSL backend and
+GL4ES reported no ARB program extensions. Menu RSS was 218288 KiB (about
+213 MiB), with zero process swap. This was a menu regression check, not a new
+full-school or audio validation. Archive size: 5,456,458 bytes; SHA256:
+`e1b7ac1d217350afe47da5f5c05c7416a7ad23ad3fbc71b736cecd175f91cee2`. Internal hashes and the README exclusion were verified.
+
+Simulated Guide/Fn + Start passed for this exact package, producing intentional
+exit status 143 with no remaining SchoolTycoon process. Physical button wiring
+and the Mali rendering result remain unverified.

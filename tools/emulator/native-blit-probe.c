@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define LOAD(handle, result, name, parameters) \
     result (*name) parameters = dlsym(handle, #name); if (!name) return 2
@@ -24,6 +25,40 @@ int main(void) {
     if (!visual) return 2;
     void *context = glXCreateContext(display, visual, NULL, 1);
     if (!context || !glXMakeCurrent(display, DefaultRootWindow(display), context)) return 2;
+
+    if (getenv("ST_EXPECT_GLSL_ONLY")) {
+        LOAD(desktop, const unsigned char *, glGetString, (unsigned));
+        const char *extensions = (const char *)glGetString(0x1f03);
+        if (!extensions || strstr(extensions, "GL_ARB_fragment_program ")
+            || strstr(extensions, "GL_ARB_vertex_program ")) return 5;
+        LOAD(desktop, unsigned, glCreateShader, (unsigned));
+        LOAD(desktop, void, glShaderSource, (unsigned, int, const char **, const int *));
+        LOAD(desktop, void, glCompileShader, (unsigned));
+        LOAD(desktop, void, glGetShaderiv, (unsigned, unsigned, int *));
+        LOAD(desktop, unsigned, glCreateProgram, (void));
+        LOAD(desktop, void, glAttachShader, (unsigned, unsigned));
+        LOAD(desktop, void, glLinkProgram, (unsigned));
+        LOAD(desktop, void, glGetProgramiv, (unsigned, unsigned, int *));
+        LOAD(desktop, void, glDeleteShader, (unsigned));
+        LOAD(desktop, void, glDeleteProgram, (unsigned));
+        const char *source[2] = {
+            "#version 120\nvoid main(){gl_Position=gl_Vertex;}",
+            "#version 120\nvoid main(){gl_FragColor=vec4(0.25,0.5,0.75,1.0);}"};
+        unsigned shader[2], program = glCreateProgram();
+        for (int i=0; i<2; i++) {
+            shader[i]=glCreateShader(i ? 0x8b30 : 0x8b31);
+            glShaderSource(shader[i],1,&source[i],NULL); glCompileShader(shader[i]);
+            int compiled=0; glGetShaderiv(shader[i],0x8b81,&compiled);
+            if (!compiled) return 6;
+            glAttachShader(program,shader[i]);
+        }
+        glLinkProgram(program);
+        int linked=0; glGetProgramiv(program,0x8b82,&linked);
+        glDeleteProgram(program);
+        for (int i=0;i<2;i++) glDeleteShader(shader[i]);
+        if (!linked) return 7;
+        puts("ST-GLSL-PASS: ARB assembly extensions absent; desktop GLSL links");
+    }
 
     LOAD(desktop, void, glGenTextures, (int, unsigned *));
     LOAD(desktop, void, glBindTexture, (unsigned, unsigned));

@@ -25,6 +25,7 @@ else
 fi
 . /userdata/host/emulator/shared/graphics-env.sh
 unset LD_PRELOAD LD_AUDIT WINESERVER
+export WINE_D3D_CONFIG=csmt=0,shader_backend=glsl LIBGL_NOARBPROGRAM=1
 export DISPLAY=:95 ST_SDL_DISPLAY=:96 GALLIUM_DRIVER=softpipe
 mkdir -p "$game/vm-font-cache"
 cat > "$game/vm-fonts.conf" <<EOF
