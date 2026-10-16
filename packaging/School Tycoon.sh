@@ -48,7 +48,7 @@ fi
     printf 'SDL rotation=%s blitter-disabled=%s scaler=%s\n' "${SDL_ROTATION:-default}" "${SDL_BLITTER_DISABLED:-default}" "${SDL_HQ_SCALER:-default}"
 } > "$game_root/logs/system.txt" 2>&1
 if [ -f "$game_root/SHA256SUMS" ]; then
-    (cd "$ports_dir"; sha256sum -c "$game_root/SHA256SUMS") || {
+    (cd "$ports_dir"; awk 'tolower($0) !~ /readme\.txt$/' "$game_root/SHA256SUMS" | sha256sum -c -) || {
         printf '%s\n' 'Package verification failed. Re-extract the complete package before launching.'
         exit 1
     }

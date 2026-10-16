@@ -88,3 +88,9 @@ board. It cannot emulate Mali-G31/libmali, H700 display/audio or physical contro
 Handheld gameplay, sound, scaling and usable speed remain unverified. This is
 a release candidate, not a guarantee of a production-ready handheld port.
 Licenses and runtime source links are in school-tycoon/BUILD-NOTICES.txt.
+
+README text files may be edited without failing the package integrity check.
+Executable scripts and runtime binaries remain checksum verified.
+The latest handheld run passed native GPU warmup but failed subsequent GL4ES
+shader linking. This package adds failed-shader source reporting; it does not
+claim that this unresolved rendering failure is fixed.

@@ -68,7 +68,7 @@ with tempfile.TemporaryDirectory(prefix='st-build-') as temporary:
  (game/'BUILD-ID.txt').write_text('handheld-20261015 media='+('native-experiment' if a.experimental_directmusic else 'builtin')+' sources-sha256 '+source_id+'\n')
  (game/'BUILD-NOTICES.txt').write_text('Box64 MIT: unchanged upstream revision 45f85efc52d7bd3a3c8642bfc5093ce7932f6c23, -O2 -DNDEBUG, symbols stripped.\nhttps://github.com/ptitSeb/box64/tree/45f85efc52d7bd3a3c8642bfc5093ce7932f6c23\nOwn helper sources and MIT license:\nhttps://github.com/cdale11/school-tycoon-port/tree/main/tools\nDefault media: Wine builtins; original-game audio remains unverified.\nExperimental builds only: unchanged Debian CAB tools with licenses/sources under runtime/cabextract; native Microsoft media downloaded and hash-verified on device, never bundled.\nWine 10.0 LGPL: downloaded unchanged and checksum verified; not bundled.\nhttps://github.com/Kron4ek/Wine-Builds/releases/tag/10.0\nhttps://gitlab.winehq.org/wine/wine/-/tree/wine-10.0\nWeston/Crusty/GL4ES: reused from the installed PortMaster runtime; not bundled.\nlibgcc: license and source provenance under runtime/x86_64.\n')
  files=sorted(f for f in root.rglob('*') if f.is_file())
- (game/'SHA256SUMS').write_text(''.join(sha(f.read_bytes())+'  '+str(f.relative_to(root))+'\n' for f in files))
+ (game/'SHA256SUMS').write_text(''.join(sha(f.read_bytes())+'  '+str(f.relative_to(root))+'\n' for f in files if not f.name.lower().endswith('readme.txt')))
  (game/'gamedata').mkdir()
  a.output_dir.mkdir(parents=True,exist_ok=True); archive=a.output_dir/'school-tycoon-handheld.tar.gz'
  # Publish only a complete archive; preserve the preceding release on failure.

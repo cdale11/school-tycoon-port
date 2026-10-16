@@ -1,6 +1,7 @@
 """Check update-entry log preservation and damaged-package rejection."""
 from pathlib import Path
 import os
+import hashlib
 import subprocess
 import tempfile
 repo=Path(__file__).resolve().parents[1]
@@ -24,6 +25,12 @@ with tempfile.TemporaryDirectory(prefix='st-entry-') as directory:
  assert (logs/'launcher.txt.previous').read_text()=='preceding launcher'
  assert 'Debug: 1' in (logs/'system.txt').read_text()
  assert saved.read_bytes()==b'preserve saved school'
+ # Legacy manifests may include editable README files; only these are ignored.
+ (root/'PLAY-README.txt').write_text('locally edited documentation')
+ digest=hashlib.sha256((game/'prepare-wine.sh').read_bytes()).hexdigest()
+ (game/'SHA256SUMS').write_text('0'*64+'  PLAY-README.txt\n'+digest+'  school-tycoon/prepare-wine.sh\n')
+ result=subprocess.run(['sh',str(entry)],env=env,timeout=10)
+ assert result.returncode==77,'README edits must not block game startup'
  # A damaged runtime must stop before invoking the installer or game.
  (game/'SHA256SUMS').write_text('0'*64+'  school-tycoon/prepare-wine.sh\n')
  result=subprocess.run(['sh',str(entry)],env=env,timeout=10)

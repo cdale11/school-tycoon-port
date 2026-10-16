@@ -167,3 +167,34 @@ Simulated Guide/Fn + Start also passed through the controller fixture with this
 archive: intentional exit status 143 and no remaining SchoolTycoon process.
 Physical button wiring remains unverified. All 14 host regression suites passed;
 the additional real GLES3 state-restoration test passed separately.
+
+## Latest physical run: warmup passed, rendering still failed
+
+The supplied fresh logs show ARM GLES 3.2 returning the expected warmup pixel
+(64,128,191,255) with GL error zero. Wine's private desktop also passed. During
+subsequent WineD3D capability checks, GL4ES reported an ARB program link failure
+with an empty info log, followed by custom program link failures and repeated
+GL_OUT_OF_MEMORY / invalid-framebuffer errors. The launcher correctly exited
+with phase `rendering-failed`. Warmup did not fix the physical rendering failure.
+
+The captured kernel tail contains older suspend/network activity but no GPU
+allocation failure identifying the cause. This does not rule out a driver
+allocation failure, nor does GL_OUT_OF_MEMORY alone establish overall RAM
+exhaustion. The Vulkan loader warning is not sufficient reason to install Vulkan:
+the selected rendering path uses OpenGL through GL4ES.
+
+`LIBGL_LOGSHADERERROR=1` now enables the pinned bridge's existing failure-only
+shader source reporting. This is diagnostic coverage, not a rendering fix.
+The emulator runner uses the same setting; software Mesa still cannot emulate
+the proprietary Mali compiler, ION or physical display driver.
+
+README text files (case-insensitive names ending in `readme.txt`) are excluded
+from newly generated internal manifests and ignored in older manifests at
+startup. Other entries remain verified. Tests confirm an edited README permits
+startup while a corrupt runtime script is still rejected. No firmware settings,
+game data, prefix or runtime cache are reset by this change.
+
+The rebuilt documentation/diagnostic update is 5,456,378 bytes, SHA256
+`b30d97b4d5190b3cf42401e5eae9fad5345a68d6fb47509e84c2d57b97d8eed8`. Entry, build-integrity, launcher and firmware-setting
+regressions passed. Internal archive checksums were verified. No new full-game
+or physical rendering success is claimed for this update.

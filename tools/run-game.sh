@@ -234,6 +234,9 @@ export SDL_VIDEO_GL_DRIVER=/usr/lib/libGLESv2.so.2
 export BOX64_LIBGL="$weston_dir/lib_aarch64/graphics/$window_gl/libGL.so.1"
 export LIBGL_EGL=/usr/lib/libEGL.so.1 LIBGL_GLES=/usr/lib/libGLESv2.so.2
 export LIBGL_ES=2 CRUSTY_SHOW_CURSOR=1
+# Print generated shader sources on failure; the Mali linker can return an
+# empty info log. This is failure-only output, bounded by the session logger.
+export LIBGL_LOGSHADERERROR=1
 export WINEDEBUG='-all,err+all'
 if [ "${ST_DEBUG:-0}" = 1 ]; then
     export WINEDEBUG='-all,err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'

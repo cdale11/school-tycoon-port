@@ -39,7 +39,7 @@ export ST_EGL_TARGET=SchoolTycoon.exe
 export WINEDEBUG="${ST_VM_WINEDEBUG:--all,err+all}"
 media_root="$game"
 . "$game/media-env.sh"
-export BOX64_DYNAREC=0 BOX64_LOG=0
+export BOX64_DYNAREC=0 BOX64_LOG=0 LIBGL_LOGSHADERERROR=1
 export BOX64_LD_LIBRARY_PATH="$game/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 export BOX64_PATH="$wine_dir/bin:/usr/bin:/bin"
 preload="/userdata/libsdl-display.so:$game/runtime/graphics/libst-gl-present.so:$game/runtime/graphics/libst-glx-config.so:$game/runtime/graphics/libst-egl-prime.so:$ST_CRUSTY_LIBRARY"
