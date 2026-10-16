@@ -231,3 +231,71 @@ full-school or audio validation. Archive size: 5,456,458 bytes; SHA256:
 Simulated Guide/Fn + Start passed for this exact package, producing intentional
 exit status 143 with no remaining SchoolTycoon process. Physical button wiring
 and the Mali rendering result remain unverified.
+
+## Native GLX context binding correction
+
+The next physical run still stopped with `phase=rendering-failed`: disabling ARB
+removed that probe but did not fix framebuffer readback or custom FPE links.
+The launcher deliberately ended the run; the log does not show a normal game
+crash or an OOM-killer event. Free CMA was low (about 2–3 MiB), but this alone does
+not establish why a native allocation failed.
+
+Inspection of the pinned ARM64 Crusty binary found a definite context defect:
+`crusty_glXMakeCurrent` stores the logical context and returns success without a
+native bind; the backend `make_current` also simply returns success. A native
+EGL context is thread-local. Startup warmup on one thread therefore does not
+establish that subsequent GLX callers have a current native context.
+
+Our preload now captures the owned SDL window/context and performs the native
+SDL make-current operation for both GLX binding entry points, including release
+on a null context. It updates the bridge's logical bookkeeping only after the
+native operation succeeds. Native binding failure returns false and produces the
+existing fatal graphics marker instead of claiming success. The proc-address
+route also selects these wrappers. Native state is not transferred while still
+owned by a different thread; the driver can reject that invalid operation.
+
+Tests:
+
+- Host tests exercise release, cross-thread rebinding, both GLX APIs and failed
+  native binds without advancing bridge bookkeeping.
+- The real ARM64 bridge regression fails against the prior archive with exit 9:
+  EGL remains current after a supposedly successful GLX release.
+- The same test with the correction exits 0 and reports
+  `ST-CONTEXT-HANDOFF-PASS`, `ST-GLSL-PASS` and `ST-NATIVE-BLIT-PASS`, including
+  the expected pixel (64,128,191,255) and restored framebuffer bindings.
+- Native startup, EGL ownership, source/uniform cache, GLX configuration,
+  launcher and firmware-setting regression checks pass.
+
+This establishes a bridge correctness fix. It does not prove that every error
+in the physical Mali run had this cause. No physical-display success is claimed.
+
+
+Release artifact for this correction: 5,457,331 bytes, SHA256
+`8a22d66c82d703bf4428738dda2d597b67d62a55410cb129e6e4ff119a9d0fbc`.
+All internal payload checksums were verified. The final archive differs from the
+ARM64-tested candidate only in `PLAY-README.txt`; executable payloads are identical.
+No game data, prefix or saves are included or reset by this update.
+
+
+Full-game regression initially failed three times at the private Wine desktop
+readiness check (including a restart of the VM's X server). The helper reported
+`The explorer process failed to start`; the application graphics preloads were
+not yet active. A subsequent run with process/DLL tracing passed desktop readiness
+and displayed the animated original-game intro. This is an intermittent startup
+failure, not a proven stale-X-server problem. Wine 10's explorer startup includes
+an internal 10-second input-idle wait; TCG timing is a possible contributor, but
+that cause has not been established. No readiness gates were removed or relaxed.
+
+
+The traced run reached the original main menu, verified in a private display
+capture. The native-context binding log appeared on the game thread. There were
+zero `GL_OUT_OF_MEMORY`, `GL_INVALID_FRAMEBUFFER_OPERATION` or
+`ST-GRAPHICS-FAILED` markers in the inspected game log. Existing GL4ES unsupported
+pixel-buffer/depth-texture warnings remain. Menu process RSS was 220384 KiB
+(about 215 MiB), with zero process swap. This is software-Mesa intro/menu
+validation, not a new full-school, audio or physical-Mali certification.
+
+The simulated SDL Guide/Fn + Start controller shortcut then passed, with expected
+status 143 and no remaining game, Wine or explorer process. Physical key wiring
+remains a separate hardware check. Quick Resume protections still pass across all
+12 shell entry/startup/shutdown/diagnostic scripts.

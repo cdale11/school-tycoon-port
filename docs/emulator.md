@@ -166,3 +166,9 @@ This verifies shader/draw/readback and native state restoration. It is separate
 from the 14 dependency-light regression suites. The package runner preserves
 initial Wine output and rejects repeated allocation/framebuffer errors, just as
 the handheld runner does. Neither check substitutes for a Mali hardware test.
+
+Set `ST_EXPECT_CONTEXT_HANDOFF=1` when running the native-blit probe to require
+real EGL release and rebinding across two threads. This fails against the old
+Crusty-only logical binding and passes with the native binding correction.
+`python3 tests/context-binding-integration.py` additionally verifies failed-bind
+propagation using a controlled native-library fixture.

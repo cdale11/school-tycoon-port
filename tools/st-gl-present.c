@@ -106,6 +106,11 @@ void *crusty_glXGetProcAddressARB(const unsigned char *name) {
     pthread_once(&procedure_once, resolve_procedure);
     /* Preserve Crusty's backend initialization before returning an override. */
     void *result = real_proc && real_proc != crusty_glXGetProcAddressARB ? real_proc(name) : NULL;
+    if (result && (!strcmp((const char *)name, "glXMakeCurrent")
+               || !strcmp((const char *)name, "glXMakeContextCurrent"))) {
+        void *binding=dlsym(RTLD_DEFAULT,(const char *)name);
+        if (binding) return binding;
+    }
     if (result && (!strcmp((const char *)name, "glBlitFramebuffer")
                || !strcmp((const char *)name, "glBlitFramebufferEXT")))
         return glBlitFramebuffer;

@@ -94,3 +94,7 @@ Executable scripts and runtime binaries remain checksum verified.
 The latest handheld run passed native GPU warmup but failed subsequent GL4ES
 shader linking. This package adds failed-shader source reporting; it does not
 claim that this unresolved rendering failure is fixed.
+
+The native GLX binding correction now binds/releases the owned GLES context on
+the calling thread. An ARM64 before/after test reproduces the old bridge defect
+and passes with the correction. Physical handheld rendering is still unverified.

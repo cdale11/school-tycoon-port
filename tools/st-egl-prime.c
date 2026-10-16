@@ -9,9 +9,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 static void *egl_library;
 static void *sdl_library;
+static void *backend_window;
+static void *backend_context;
 int st_gpu_warmup(void);
 static void fail_early(void) { fflush(stderr); _exit(1); }
 static int matching_target(void) {
@@ -61,13 +64,60 @@ void *_SDL_CreateWindow(const char *title,int x,int y,int w,int h,unsigned flags
     void *(*create)(const char *,int,int,int,int,unsigned)=native_sdl_symbol("SDL_CreateWindow");
     void *window=create(title,x,y,w,h,flags);
     check_sdl_result(window,"SDL_CreateWindow");
+    backend_window=window;
     return window;
 }
 void *_SDL_GL_CreateContext(void *window) {
     void *(*create)(void *)=native_sdl_symbol("SDL_GL_CreateContext");
     void *context=create(window);
     check_sdl_result(context,"SDL_GL_CreateContext");
+    backend_context=context;
     return context;
+}
+/* The pinned Crusty GLX entry points only remember an opaque GLX handle.
+ * EGL contexts are thread-local: success must also bind the actual SDL context
+ * on the calling thread. Releasing it permits a later handoff to another thread.
+ * Preserve the bridge's logical bookkeeping only after the native bind succeeds.
+ */
+static int bind_native_context(void *logical_context) {
+    if (!backend_window || !backend_context) {
+        fputs("ST-GRAPHICS-FAILED: GLX binding requested before native backend initialization\n",stderr);
+        return 0;
+    }
+    int (*bind)(void *,void *)=native_sdl_symbol("SDL_GL_MakeCurrent");
+    if (bind(logical_context?backend_window:NULL,logical_context?backend_context:NULL)) {
+        const char *(*error)(void)=native_sdl_symbol("SDL_GetError");
+        fprintf(stderr,"ST-GRAPHICS-FAILED: native GLX context binding: %s\n",error());
+        return 0;
+    }
+    static _Thread_local int reported;
+    if (logical_context && !reported) {
+        fprintf(stderr,"ST graphics: native context bound on thread %ld\n",(long)syscall(SYS_gettid));
+        reported=1;
+    }
+    return 1;
+}
+int crusty_glXMakeCurrent(void *display,unsigned long drawable,void *context) {
+    const char *path=getenv("ST_CRUSTY_LIBRARY");
+    void *bridge=path?dlopen(path,RTLD_NOW|RTLD_NOLOAD):NULL;
+    int (*next)(void *,unsigned long,void *)=bridge?dlsym(bridge,"crusty_glXMakeCurrent"):NULL;
+    if (bridge) dlclose(bridge);
+    if (!next || next==crusty_glXMakeCurrent || !bind_native_context(context)) return 0;
+    return next(display,drawable,context);
+}
+int crusty_glXMakeContextCurrent(void *display,unsigned long draw,unsigned long read,void *context) {
+    const char *path=getenv("ST_CRUSTY_LIBRARY");
+    void *bridge=path?dlopen(path,RTLD_NOW|RTLD_NOLOAD):NULL;
+    int (*next)(void *,unsigned long,unsigned long,void *)=bridge?dlsym(bridge,"crusty_glXMakeContextCurrent"):NULL;
+    if (bridge) dlclose(bridge);
+    if (!next || next==crusty_glXMakeContextCurrent || !bind_native_context(context)) return 0;
+    return next(display,draw,read,context);
+}
+int glXMakeCurrent(void *display,unsigned long drawable,void *context) {
+    return crusty_glXMakeCurrent(display,drawable,context);
+}
+int glXMakeContextCurrent(void *display,unsigned long draw,unsigned long read,void *context) {
+    return crusty_glXMakeContextCurrent(display,draw,read,context);
 }
 __attribute__((constructor)) static void prime_egl(void) {
     if(!matching_target()) return;

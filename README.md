@@ -1,6 +1,6 @@
 # School Tycoon for RG34XXSP
 
-The latest candidate disables GL4ES's legacy ARB assembly-program interface and explicitly selects Wine's GLSL backend, bypassing the failing ARB fog probe identified in the handheld shader report. Native bridge tests pass, but the earlier framebuffer error and physical black screen remain unconfirmed. See the [display and Quick Resume audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
+The latest candidate corrects native GLX context binding: the pinned bridge previously reported success without binding or releasing the GLES context. A real ARM64 regression fails before the fix and passes afterward, including cross-thread rebinding and pixel readback. The handheld display result remains unconfirmed. See the [display and Quick Resume audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
 with PortMaster. **This is a handheld release candidate. A playable port on the

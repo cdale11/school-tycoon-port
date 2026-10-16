@@ -38,3 +38,13 @@ Full original-game testing requires privately supplied assets and the prepared
 QEMU environment. Keep assets, prefixes, game screenshots and recordings outside
 the repository. Current audit observations and failures are in fresh-validation.md;
 the VM is not an exact Scarab/H700/Mali emulator or a handheld certification.
+
+Native context binding regression (host compiler only):
+
+```sh
+python3 tests/context-binding-integration.py
+```
+
+This checks native release, transfer between threads, both GLX binding APIs and
+propagation of native binding errors. The ARM64 native-blit probe additionally
+checks real EGL behavior with `ST_EXPECT_CONTEXT_HANDOFF=1`.

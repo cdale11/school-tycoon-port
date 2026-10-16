@@ -8,9 +8,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #define LOAD(handle, result, name, parameters) \
     result (*name) parameters = dlsym(handle, #name); if (!name) return 2
+
+struct handoff {
+    Display *display;
+    void *context;
+    int (*bind)(Display *,unsigned long,void *);
+    void *(*native_current)(void);
+    int passed;
+};
+static void *check_handoff(void *argument) {
+    struct handoff *h=argument;
+    if (h->native_current()) return NULL;
+    if (!h->bind(h->display,DefaultRootWindow(h->display),h->context)) return NULL;
+    if (!h->native_current()) return NULL;
+    if (!h->bind(h->display,0,NULL) || h->native_current()) return NULL;
+    h->passed=1;
+    return NULL;
+}
 
 int main(void) {
     void *desktop = dlopen(getenv("BOX64_LIBGL"), RTLD_NOW | RTLD_GLOBAL);
@@ -25,6 +43,19 @@ int main(void) {
     if (!visual) return 2;
     void *context = glXCreateContext(display, visual, NULL, 1);
     if (!context || !glXMakeCurrent(display, DefaultRootWindow(display), context)) return 2;
+
+    if (getenv("ST_EXPECT_CONTEXT_HANDOFF")) {
+        void *egl=dlopen(getenv("CRUSTY_LIBEGL"),RTLD_NOW|RTLD_NOLOAD);
+        void *(*current)(void)=egl?dlsym(egl,"eglGetCurrentContext"):NULL;
+        if (!current || !current()) return 8;
+        if (!glXMakeCurrent(display,0,NULL) || current()) return 9;
+        struct handoff h={display,context,glXMakeCurrent,current,0};
+        pthread_t thread;
+        if (pthread_create(&thread,NULL,check_handoff,&h)) return 10;
+        if (pthread_join(thread,NULL) || !h.passed) return 11;
+        if (!glXMakeCurrent(display,DefaultRootWindow(display),context) || !current()) return 12;
+        puts("ST-CONTEXT-HANDOFF-PASS: native EGL release and cross-thread binding");
+    }
 
     if (getenv("ST_EXPECT_GLSL_ONLY")) {
         LOAD(desktop, const unsigned char *, glGetString, (unsigned));
