@@ -8,6 +8,8 @@ if [ "$model" != linux,dummy-virt ]; then
     exit 1
 fi
 vm_display=${1:-:95}
+vm_geometry=${2:-800x600x24}
+case "$vm_geometry" in 800x600x24|720x480x24) ;; *) exit 2 ;; esac
 vm_number=${vm_display#:}
 case "$vm_number" in ''|*[!0-9]*) exit 2 ;; esac
 [ "$vm_display" = ":$vm_number" ] || exit 2
@@ -38,5 +40,5 @@ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
 export LIBGL_DRIVERS_PATH=/userdata/graphics/usr/lib/aarch64-linux-gnu/dri
 export HOME=/userdata/home XDG_CACHE_HOME=/userdata/cache
 "$bb" mkdir -p "$HOME" "$XDG_CACHE_HOME"
-exec /userdata/graphics/usr/bin/Xvfb "$vm_display" -screen 0 800x600x24 \
+exec /userdata/graphics/usr/bin/Xvfb "$vm_display" -screen 0 "$vm_geometry" \
     -xkbdir /userdata/graphics/usr/share/X11/xkb -nolisten tcp -ac

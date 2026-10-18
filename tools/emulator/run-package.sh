@@ -90,6 +90,13 @@ printf '%s\n' 'ST-PACKAGE-DESKTOP-READY'
 "$game/st-log" "/userdata/$log.stderr.txt" "/userdata/$log.stderr.startup.txt" <"$pipes/stderr" & stderr_pid=$!
 "$bb" rm -f "/userdata/$log.status.txt"
 cd "$data_dir"
+case "${ST_VM_CPU_MODE:-interpreter}" in
+    interpreter) export BOX64_DYNAREC=0 ;;
+    dynarec)
+        export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_FORWARD=0
+        export BOX64_DYNAREC_STRONGMEM=2 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0 ;;
+    *) printf '%s\n' 'Invalid ST_VM_CPU_MODE'; exit 2 ;;
+esac
 LD_PRELOAD="$preload" "$game/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe >"$pipes/stdout" 2>"$pipes/stderr" &
 app_pid=$!
 printf '%s\n' "$app_pid" >"/userdata/$log.pid.txt"

@@ -10,7 +10,7 @@ From the repository root:
 ```sh
 for suite in source-cache uniform-cache egl-ownership glx-config build-integrity \
              session-lock entry log launcher prefix-repair audio-analysis \
-             native-startup firmware-settings installer-signal; do
+             native-startup firmware-settings installer-signal presentation-fit; do
     python3 "tests/$suite-integration.py" || exit
 done
 ```

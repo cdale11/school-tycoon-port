@@ -39,7 +39,7 @@ fi
     if [ -n "${PULSE_SERVER:-}" ]; then printf '%s\n' 'Pulse server override is configured.'; fi
     if [ -f "$game_root/gamedata/SchoolTycoon.exe" ]; then sha256sum "$game_root/gamedata/SchoolTycoon.exe"; fi
     printf 'Runtime build: '; cat "$game_root/BUILD-ID.txt" 2>/dev/null || :
-    printf 'Debug: %s; CPU request: %s\n' "${ST_DEBUG:-0}" "${ST_CPU_MODE:-interpreter}"
+    printf 'Debug: %s; CPU request: %s\n' "${ST_DEBUG:-0}" "${ST_CPU_MODE:-dynarec}"
     ls -l /dev/mali0 /usr/lib/libEGL.so.1 /usr/lib/libGLESv2.so.2 /usr/lib/libSDL2-2.0.so.0 2>/dev/null || :
     printf '%s\n' '=== Native display inventory (read only) ==='
     for display_file in /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel /sys/class/graphics/fb0/rotate; do

@@ -55,7 +55,7 @@ See the fresh validation report for DLL download/hash provenance and failures.
 
 ## Runtime and memory
 
-Defaults: interpreter CPU, `MALLOC_ARENA_MAX=2`, Wine `csmt=0`, error-only logging.
+Defaults: conservative game dynarec (interpreted prefix/desktop setup), `MALLOC_ARENA_MAX=2`, Wine `csmt=0`, error-only logging.
 Wine schedules independent service work across cores. Forcing threaded rendering
 is unsafe because the bridge owns one native context. Dynarec remains optional
 and unverified; 137 in past runs does not by itself establish an OOM cause.

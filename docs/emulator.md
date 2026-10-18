@@ -54,8 +54,9 @@ files. Only one serial client should be active.
 
 ## Graphics and packaged-game checks
 
-`start-xvfb.sh :95` supplies Wine's private input display and `:96` the fixture's
-SDL rendering display; launch each in the background. `graphics-env.sh` selects
+`start-xvfb.sh :95` supplies Wine's 800×600 private input display.
+Use `start-xvfb.sh :96 720x480x24` for the fixture's native SDL rendering display,
+matching the handheld's reported drawable dimensions; launch each in the background. `graphics-env.sh` selects
 software EGL/GLES and the actual GL4ES/Crusty bridge. The software tests use
 softpipe to avoid LLVM compilation overhead. SDL's fixture-only display shim
 selects the second X display; it is not included in the handheld package.
@@ -73,11 +74,13 @@ To test a final archive:
    `/userdata/host/emulator/shared` fixture location on the host.
 3. Ensure the previous test session is stopped. The current fixture starts the
    packaged `st-desktop-ready.exe` and waits for its readiness marker itself.
-4. Run `sh run-package.sh /userdata/final-package game-final-package` in the
+4. Run `ST_VM_CPU_MODE=dynarec sh run-package.sh /userdata/final-package game-final-package` in the
    guest. It verifies archive file hashes and uses the packaged Box64, native
    graphics helpers, bounded loggers and memory sampler.
 5. Capture with `sh capture.sh :96 frame.ppm`; wait for its Captured marker.
-   Inspect the resulting image on the output share.
+   Inspect the resulting image on the output share. Check all screen borders
+   and cursor alignment; an 800×600 native surface conceals handheld cropping.
+   `ST_VM_CPU_MODE=interpreter` selects the slower CPU fallback.
 
 The historical passive keeper works around slow VM explorer startup. The current
 handheld package instead has `st-desktop-ready.exe`, which creates a hidden window,

@@ -249,7 +249,7 @@ if [ "${ST_DEBUG:-0}" = 1 ]; then
     export WINEDEBUG='-all,err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'
 fi
 # Full game runs without a diagnostic timeout, from its asset directory.
-case "${ST_CPU_MODE:-interpreter}" in
+case "${ST_CPU_MODE:-dynarec}" in
     interpreter) export BOX64_DYNAREC=0 ;;
     dynarec)
         export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
@@ -259,7 +259,7 @@ case "${ST_CPU_MODE:-interpreter}" in
 esac
 if [ "${ST_DEBUG:-0}" = 1 ]; then export BOX64_LOG=1; fi
 session_phase=game
-printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-interpreter}"
+printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-dynarec}"
 printf '%s\n' 'Graphics configuration is experimental; this is not a verified playable port.'
 export SDL_GAMECONTROLLERCONFIG_FILE="${SDL_GAMECONTROLLERCONFIG_FILE:-/userdata/system/.local/share/PortMaster/knulli/gamecontrollerdb.txt}"
 LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &

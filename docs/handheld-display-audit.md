@@ -361,3 +361,67 @@ previous archive; graphics/runtime binaries are identical.
 Simulated Guide/Fn + Start also passed for this run, ending the owned game
 session with expected status 143. Physical controls and Mali display success
 remain unverified.
+
+## Handheld feedback and presentation follow-up — 2026-10-18
+
+The user reports that `b9c7320` now displays the game on the physical handheld.
+This confirms progress beyond the earlier black-screen reports. The same run
+has no sound, slow pointer **and menu animation**, and cropped/off-center output.
+It does not establish playable performance or working audio.
+
+The presentation regression now uses the reported 720×480 drawable rather than
+assuming that the native surface matches Wine's 800×600 desktop. The native
+copy fits the game into 640×480 with 40-pixel side bars, retaining Wine's vertical
+flip. Only full-window color copies are transformed; partial/offscreen copies
+retain their coordinates. Native cursor overlay coordinates follow the fit;
+XTest/game coordinates stay in the original logical space. GL framebuffer,
+scissor, clear-color and color-mask state are preserved. The host regression
+covers both copy orientations, landscape/portrait fitting and cursor alignment.
+
+The VM fixture accepts `ST_VM_CPU_MODE=dynarec` for a conservative configuration
+(big blocks, forward extension and call/return shortcuts disabled; strong memory
+and safe flags set to 2). Prefix and desktop startup remain interpreted. One
+such run displayed the original intro and simulated Fn/Guide+Start stopped the
+owned game with exit 143. This is functional evidence, not a handheld speed
+measurement. QEMU's CPU translation and software GLES cannot predict Mali FPS.
+
+The real Wine presentation has source `(0,0)-(800,600)`, destination
+`(0,600)-(800,0)`, and a stale viewport `(0,0,256,1)`. Blits do not use the
+viewport. The final matching rule therefore requires the complete 800×600
+source and destination rather than inferring dimensions from GL viewport state.
+Other game resolutions are not covered by this fit; keep 800×600 selected.
+
+With that correction, the VM screenshot shows the complete Settings screen,
+including its bottom Done button, centered with side bars. A real-game input
+probe observes logical position (400,300), button-down and button-up, and emits
+ST-CLICK-PASS. The pictured cursor is at the corresponding fitted position.
+This is stronger evidence than the initial mock-only fit test, which missed
+Wine's reversed copy and stale viewport. Regression coverage now includes both.
+
+Audio was retested in a separate cloned prefix with the ten pinned native media
+DLLs and BOX64_MMAP32=0. The capture chain passes a generated-tone calibration
+(peak 4001, no clipped samples). Original menu script initialization/call succeeds,
+but its capture has 37788 nonzero samples, 35898 clipped (94.998%); the rest is
+silence. A separate native DirectSound test explicitly requests PCM16 primary
+format: its API/playback-cursor test passes, but capture still has 22402 clipped
+samples out of 108748 nonzero (20.60%). Neither is acceptable playback. These
+experiments remain excluded. The native mapping fix alone does not fix audio.
+The observed game profile also has effects/music sliders at minimum; users
+should raise those in Settings, but doing so is not a verified music fix.
+
+The final candidate archive is 5,459,387 bytes, SHA256
+`34489983e6d4d83c08e54b7f091b94cdd930e2961a8f3b78df3e76d58db34097`. All three release aliases are identical. Its stripped
+graphics library is byte-identical to the library from the successful VM run
+after applying the release strip step. The packaged launcher's conservative
+dynarec default and explicit interpreter fallback pass the launcher regression.
+A second real-game click on Done returns to the fully visible main menu.
+
+Observed game RSS in this intro/menu test peaked at 340876 KiB
+(332.9 MiB), with 0 KiB process swap. This is not a populated-school
+or whole-device memory measurement.
+
+Two error-only VM startup attempts failed the private desktop gate with
+“explorer process failed to start.” The successful runs used `+loaddll,+x11drv`
+tracing; this timing-sensitive VM startup behavior remains unexplained. The
+handheld default stays error-only. These runs validate the graphics/input code
+and selected CPU mode, not unattended startup on every system or a speed claim.

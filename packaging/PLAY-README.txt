@@ -42,12 +42,15 @@ Fn/Guide + Start exits this game session; Select + Start is the fallback.
 Save first. Simulated SDL exit is tested; physical Fn mapping is not certified.
 
 MEMORY AND GRAPHICS
-Optimized Box64 -O2 interpreter, Cortex-A53-tuned native helpers, bounded heap
+Optimized Box64 with conservative game dynarec, Cortex-A53 native helpers, bounded heap
 arenas and single-context rendering are the default. Native Mali EGL/GLES is
 selected on the handheld. No software Mesa renderer is bundled. Select Low detail
 and 800x600 in-game when available. No settings or save is edited automatically.
-For stable defaults, remove cpu-mode.txt only if you previously opted into
-dynarec. Dynarec remains experimental; forced multithreaded rendering is unsafe.
+The game uses conservative dynarec; prefix/desktop startup use interpretation.
+Put interpreter in cpu-mode.txt for the slower fallback; remove it to restore
+the default. Forced multithreaded rendering remains disabled.
+The 800x600 game image fits into a centered 640x480 area on the 720x480 output.
+Keep 800x600 selected; the fit does not cover other game resolutions.
 Symbols are stripped to reduce storage, not claimed as a RAM saving.
 
 SAVES
@@ -57,6 +60,8 @@ directory until its prefix and Wine runtime have been backed up/moved.
 
 AUDIO
 Wine uses the firmware native audio backend; volume/mute/output still apply.
+Raise Sound Effects and Music in the game Settings if they are at minimum.
+This is not a verified music fix: native DirectMusic playback remains broken.
 The launcher preserves an existing per-user PulseAudio connection when creating
 its private display session. The PE32 helper registers and checks 13 media COM
 classes. Registration is not proof of playback: original-game audio remains

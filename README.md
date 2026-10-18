@@ -1,6 +1,11 @@
 # School Tycoon for RG34XXSP
 
-The latest candidate disables Box64's forced low-address mappings for native libraries (`BOX64_MMAP32=0`). The handheld support bundle confirms that native Mali warmup succeeds but allocation/readback fails after PE32 startup, even with corrected context binding. This targets a native-driver mapping compatibility risk; physical display success remains unverified. See the [display audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
+The user confirms that game graphics now appear on the handheld with
+`BOX64_MMAP32=0`. Sound is still missing, the pointer and menu animation are
+slow, and the image was cropped/off-center. This update fits the 800×600 image
+to the display and enables conservative game dynarec. The emulator shows the
+full Settings screen and accepts clicks; handheld speed and sound remain unresolved. See the [display audit](docs/handheld-display-audit.md).
+README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
 with PortMaster. **This is a handheld release candidate. A playable port on the
@@ -37,8 +42,9 @@ Physical Fn mapping and USB input on the handheld remain unverified.
 
 Back up `school-tycoon/gamedata` and `school-tycoon/prefix-wine-10.0`, following
 links when applicable. Retain any old runtime-probe directory still targeted
-by prefix/runtime links. No reset is required. If you opted into experimental
-dynarec previously, remove `cpu-mode.txt` to use the stable interpreter default.
+by prefix/runtime links. No reset is required. Conservative dynarec is now the game default. To fall back to interpretation,
+put `interpreter` in `school-tycoon/cpu-mode.txt`; remove that file to restore
+the default. Prefix and desktop setup still use interpretation.
 
 ## Memory and diagnostics
 
@@ -46,8 +52,8 @@ The build includes optimized Box64, Cortex-A53-tuned native helpers, joined
 vertex shaders, uniform-array fixes and corrected internal shader sources.
 Heap arenas are limited to two; Wine rendering stays in the bridge's single
 graphics context. The handheld uses native Mali EGL/GLES, with no software Mesa
-bundled. Forced multithreaded rendering and the unverified CPU recompiler are
-not enabled by default. Select Low detail and 800x600 in-game when available.
+bundled. Conservative dynarec accelerates the game CPU; forced multithreaded
+rendering stays disabled. Select Low detail and 800x600 in-game when available.
 
 `school-tycoon/logs/` contains firmware/build identity, launch phases, controller
 connection, process exit status, display logs, bounded Wine output and the last
@@ -68,18 +74,17 @@ with an observed 626 MiB process high-water value and no process swap. Original
 game audio fails the capture check. This remains a development candidate.
 
 - Actual handheld, earlier tests: Box64 execution, Wine interpreter Windows
-  commands, native Mali EGL/GLES pixels and a Windows GDI window. Earlier
-  Direct3D game startup failed; the current graphics fixes have not been
-  confirmed on Mali.
+  commands, native Mali EGL/GLES pixels and a Windows GDI window. The latest user test confirms that game graphics now appear on Mali,
+  with cropping, slow animation/input and missing sound.
 - Earlier ARM64 VM builds: original intro/menus, classroom placement and save, Day 3 with
   eight students. Sustained scene runs stayed around 688–701 MiB game RSS with
   no process swap. This is not total device memory or a Mali memory estimate.
 - Integration checks: controller motion/clicks/input release/Fn exit, launcher
   working directory and owned-process cleanup, Wine cache recovery, prefix
   preservation, bounded logging, ELF architecture and package checksums.
-- Unverified on handheld: rendering/scaling, sound, physical controls and
-  playable speed. Interpreter emulation can be slow. Dynarec previously exited
-  137, and Weston has shown a teardown assertion.
+- Unresolved on handheld: correct scaling, sound, responsive controls and
+  playable speed. The current conservative dynarec fixture exits normally through the shortcut;
+  older dynarec experiments exited 137. Weston previously showed a teardown assertion.
 
 The VM matches Cortex-A53, four cores, ARM64, 4 KiB pages, 39-bit address space,
 4.9.170 kernel and approximately the reported RAM/swap. It substitutes a virtual
