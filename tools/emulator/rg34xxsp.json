@@ -29,5 +29,21 @@
     "native-startup-integration.py",
     "launcher-integration.py",
     "firmware-settings-integration.py"
-  ]
+  ],
+  "reported_native_driver": {
+    "version": "Mali r20p0-01rel0.8ec337de4ddab3365a32cff58063a9da",
+    "libmali_sha256": "08c4c5f65f31a753065cf7332b5596f045a552697cfd9849aef15ea494192b2b",
+    "egl": "1.4",
+    "gles": "3.2",
+    "framebuffer_virtual_size": [
+      720,
+      960
+    ],
+    "framebuffer_bpp": 32,
+    "source": "Private support bundle from 2026-10-17; driver binaries are not redistributed",
+    "sdl_window_size": [
+      720,
+      480
+    ]
+  }
 }

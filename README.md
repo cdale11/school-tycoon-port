@@ -1,6 +1,6 @@
 # School Tycoon for RG34XXSP
 
-The latest candidate corrects native GLX context binding: the pinned bridge previously reported success without binding or releasing the GLES context. A real ARM64 regression fails before the fix and passes afterward, including cross-thread rebinding and pixel readback. The handheld display result remains unconfirmed. See the [display and Quick Resume audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
+The latest candidate disables Box64's forced low-address mappings for native libraries (`BOX64_MMAP32=0`). The handheld support bundle confirms that native Mali warmup succeeds but allocation/readback fails after PE32 startup, even with corrected context binding. This targets a native-driver mapping compatibility risk; physical display success remains unverified. See the [display audit](docs/handheld-display-audit.md). README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
 with PortMaster. **This is a handheld release candidate. A playable port on the

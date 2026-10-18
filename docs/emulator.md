@@ -185,3 +185,12 @@ The current packaged helpers pass this probe on ARM64/Mesa (exit 0), including
 context handoff, shader linking and framebuffer copy. This does not reproduce
 or resolve the reported Mali failure. No new handheld package was issued for
 this diagnostic extension; the production runtime is unchanged.
+
+
+The package runner now mirrors production's `BOX64_MMAP32=0` policy. For an
+isolated comparison, build `native-mapping-probe.c` as an ARM64 shared library
+(`-shared -fPIC -ldl`) and preload it ahead of the production graphics helpers
+while running a PE32 Direct3D probe through Box64/Wine. Compare explicit values
+of BOX64_MMAP32=1 and 0 in separate processes. The marker records a native mmap
+on the first GLX bind; it is not a GPU-allocation trace. Do not preload it into
+normal handheld sessions. See the display audit for the measured addresses.

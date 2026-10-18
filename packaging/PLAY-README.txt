@@ -98,3 +98,8 @@ claim that this unresolved rendering failure is fixed.
 The native GLX binding correction now binds/releases the owned GLES context on
 the calling thread. An ARM64 before/after test reproduces the old bridge defect
 and passes with the correction. Physical handheld rendering is still unverified.
+
+Native driver mapping update: BOX64_MMAP32=0 leaves native driver allocations
+to the kernel instead of forcing low addresses after PE32 startup. Explicit
+32-bit guest allocations remain handled by Wine/Box64. Mali display success
+still requires hardware verification. Existing data and prefix are preserved.

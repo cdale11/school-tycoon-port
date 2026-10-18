@@ -148,6 +148,10 @@ cleanup_window() {
 
 export WINEPREFIX="$window_root/prefix-wine-10.0"
 export WINEARCH=win64 BOX64_DYNAREC=0 BOX64_LOG=0
+# Native Mali allocations must retain the driver's address-selection policy.
+# Explicit 32-bit guest mappings are still handled by Box64/Wine separately.
+export BOX64_MMAP32=0
+printf '%s\n' 'Native mapping policy: BOX64_MMAP32=0 (no forced low-address native allocations)'
 # Bound glibc heap arenas on the 1 GiB handheld; rendering stays single-context.
 export MALLOC_ARENA_MAX=2
 export BOX64_PATH="$window_root:$wine_dir/bin:/bin:/usr/bin"

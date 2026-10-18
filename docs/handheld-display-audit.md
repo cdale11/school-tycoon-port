@@ -299,3 +299,65 @@ The simulated SDL Guide/Fn + Start controller shortcut then passed, with expecte
 status 143 and no remaining game, Wine or explorer process. Physical key wiring
 remains a separate hardware check. Quick Resume protections still pass across all
 12 shell entry/startup/shutdown/diagnostic scripts.
+
+
+## Support bundle: native mapping policy
+
+The October 17 support bundle's package manifest exactly matches the published
+context-binding candidate. Its log confirms native binding on the game thread;
+the first Wine 4×4 attached-texture readback still fails with GL_OUT_OF_MEMORY.
+Thus the context correction did not resolve the physical failure. Native Mali
+shader/draw/readback passes before PE32 startup, and the desktop helper retires
+normally. The launcher ends repeated rendering failures intentionally.
+
+Driver identity: ARM GLES 3.2 r20p0-01rel0.8ec337de4ddab3365a32cff58063a9da,
+EGL 1.4; libmali SHA256
+`08c4c5f65f31a753065cf7332b5596f045a552697cfd9849aef15ea494192b2b`.
+It imports native `mmap`/`mmap64`. The framebuffer virtual size is 720×960 at 32 bits per pixel, and SDL reports a 720×480 window;
+there is `/dev/mali0` and no DRM node. Metadata is recorded in the emulator
+profile; proprietary driver binaries and the raw bundle remain private.
+
+The pinned Box64 native `mmap` override switches to low-address allocation when
+`running32bits` is true and BOX64_MMAP32 retains its default of 1. This applies to
+native libraries too. It can replace a null address with a low-address hint and,
+if the returned address violates its constraints, unmap and retry with MAP_FIXED.
+That behavior differs from native warmup before PE32 starts. Driver-selected GPU
+mappings should not be forced through this optional low-address policy.
+
+The launcher and VM package runner now set BOX64_MMAP32=0. Explicit guest
+32-bit allocations remain handled by Wine/Box64. This does not increase physical
+RAM or change CMA, firmware, Quick Resume, prefix, game data or graphics drivers.
+The launcher regression verifies that an inherited value of 1 is overridden.
+
+This is a targeted compatibility candidate, not proof of the Mali failure's
+cause: the bundle does not contain a syscall trace establishing a rejected GPU
+mmap. A diagnostic preload (`tools/emulator/native-mapping-probe.c`) records a
+native allocation made during a real PE32 graphics call, using the pinned ARM64
+Box64 and Wine. It is excluded from the handheld archive.
+
+
+ARM64 comparison results (real Box64/Wine PE32 calls, software Mesa graphics):
+
+- BOX64_MMAP32=1: native mmap returned `0x30140000`.
+- BOX64_MMAP32=0: native mmap returned `0x7f7d361000`.
+- Both Direct3D texture probes returned `ST-D3D8-TEXTURE-PASS`.
+
+This verifies the changed allocator policy and PE32 compatibility, not a
+reproduction of Mali's rejected allocation. Updated archive: 5,457,602 bytes;
+SHA256 `b614f02a2481e38f47366460dfc402675450bb30ef01faf81d677dc3caaa7818`.
+Its internal manifest was checked, and driver binaries, test preloads, game data
+and prefixes are excluded. Launcher and firmware-setting regressions pass.
+
+
+The rebuilt archive reached the original main menu with default error logging
+in the ARM64/Mesa fixture; desktop readiness passed without the trace workaround
+used in the previous run. Menu RSS was 216516 KiB (about 211 MiB), with no process
+swap. The inspected game log contained no GL_OUT_OF_MEMORY,
+GL_INVALID_FRAMEBUFFER_OPERATION or ST-GRAPHICS-FAILED markers; other known
+compatibility warnings remain. No new audio or full-school validation is claimed.
+Only run-game.sh, BUILD-ID.txt, SHA256SUMS and PLAY-README.txt differ from the
+previous archive; graphics/runtime binaries are identical.
+
+Simulated Guide/Fn + Start also passed for this run, ending the owned game
+session with expected status 143. Physical controls and Mali display success
+remain unverified.
