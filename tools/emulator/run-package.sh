@@ -41,6 +41,11 @@ export WINEDEBUG="${ST_VM_WINEDEBUG:--all,err+all}"
 media_root="$game"
 . "$game/media-env.sh"
 export BOX64_DYNAREC=0 BOX64_LOG=0 LIBGL_LOGSHADERERROR=1
+if [ "${ST_VM_BOOT_CPU_MODE:-interpreter}" = dynarec ]; then
+    export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_FORWARD=0
+    export BOX64_DYNAREC_STRONGMEM=2 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0
+fi
+export BOX64_DYNAREC_FASTROUND=0 BOX64_DYNAREC_FASTNAN=0 BOX64_DYNAREC_X87DOUBLE=2
 export BOX64_MMAP32=0
 export BOX64_LD_LIBRARY_PATH="$game/runtime/x86_64:$wine_dir/lib/wine/x86_64-unix"
 export BOX64_PATH="$wine_dir/bin:/usr/bin:/bin"

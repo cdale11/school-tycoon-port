@@ -14,6 +14,7 @@ verified; other binaries are rebuilt from this repository's sources.
 
 ```sh
 python3 tools/build-handheld.py \
+  --native-directmusic --cab-runtime build-inputs/cab-runtime.tar.gz \
   --box64 /path/to/box64-opt-build/box64 \
   --runtime-base releases/school-tycoon-play.tar.gz \
   --cc /path/to/aarch64-linux-gnu-gcc-14 \
@@ -39,23 +40,25 @@ Stripped package binary: `168b82ee8995f8235d872360966e8a19f253a82330d0917bdbdae5
 Its maximum glibc requirement is **2.39** (including libm), below Scarab's 2.40.
 The preceding documentation incorrectly listed 2.38 by overlooking libm.
 
-The default archive excludes the failed native-media experiment, its installer,
-CAB binaries and source bundle. It forces builtin media even if an earlier
-experiment left native DLLs in the prefix. Readiness is keyed to helper hash
-and selected media mode, so changing modes requires verification again.
+The current release uses `--native-directmusic --cab-runtime
+build-inputs/cab-runtime.tar.gz`. The archive contains the unchanged CAB tools,
+licenses/source archives and a checked `runtime/directmusic-enabled` marker.
+Microsoft DLLs are downloaded and verified on the device, not redistributed.
+The CAB input hash is
+`5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`.
+Building without either media flag remains a builtin-only developer option;
+`--experimental-directmusic` retains the earlier opt-in developer behavior.
 
-For development only, `--experimental-directmusic --cab-runtime
-build-inputs/cab-runtime.tar.gz` includes the experiment's tools. It is still
-inactive until experimental-directmusic.txt contains 1. This combination is not
-recommended for the handheld: the full-game test failed despite passing COM
-and script API checks. The CAB input hash is
-`5cf7f9a7f452df470c6e7f9aa917b416a21d4cee37c8a57b18d567c28d26e510`;
-it contains unchanged Debian ARM64 CAB tools, licenses and corresponding sources.
-See the fresh validation report for DLL download/hash provenance and failures.
+The repaired prefix restores `.acm` modules as well as DLLs/EXEs/drivers. Readiness
+requires `msadp32.acm` and opens an ADPCM-to-PCM decoder matching the original
+music format. The prior COM-only check missed this failure. Existing nonempty
+modules, saves and settings are preserved. Native media needs conservative
+dynarec; the interpreter fallback uses builtins. `audio-mode.txt` containing
+`builtin` also selects the fallback without changing the CPU mode.
 
 ## Runtime and memory
 
-Defaults: conservative game dynarec (interpreted prefix/desktop setup), `MALLOC_ARENA_MAX=2`, Wine `csmt=0`, error-only logging.
+Defaults: conservative game/desktop dynarec (interpreted prefix repair), `MALLOC_ARENA_MAX=2`, Wine `csmt=0`, error-only logging.
 Wine schedules independent service work across cores. Forcing threaded rendering
 is unsafe because the bridge owns one native context. Dynarec remains optional
 and unverified; 137 in past runs does not by itself establish an OOM cause.

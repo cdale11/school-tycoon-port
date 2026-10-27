@@ -184,7 +184,26 @@ export DISPLAY=:0 WAYLAND_DISPLAY=school-tycoon-window
 # Repair Wine/RpcSs in the verified private X11 session, before Crusty.
 session_phase=prefix-readiness
 printf '%s\n' 'Phase: prefix-readiness'
+prefix_start=$(uptime_seconds)
 sh "$window_root/prepare-prefix.sh"
+printf 'Prefix readiness took %s seconds.\n' "$(($(uptime_seconds)-prefix_start))"
+# Repair runs in a child shell and may install native media for the first time.
+# Reload its on-disk readiness before starting the desktop/game in this shell.
+media_root="$window_root"
+. "$window_root/media-env.sh"
+printf 'Media stack after prefix readiness: %s\n' "$media_stack"
+# Reuse the conservative game CPU mode for desktop startup. Prefix creation
+# and repair retain their separate interpreter path.
+case "${ST_CPU_MODE:-dynarec}" in
+    interpreter) export BOX64_DYNAREC=0 ;;
+    dynarec)
+        export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
+        export BOX64_DYNAREC_FORWARD=0 BOX64_DYNAREC_STRONGMEM=2
+        export BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0
+        export BOX64_DYNAREC_FASTROUND=0 BOX64_DYNAREC_FASTNAN=0
+        export BOX64_DYNAREC_X87DOUBLE=2 ;;
+    *) printf '%s\n' 'Invalid ST_CPU_MODE'; exit 2 ;;
+esac
 # Verify the actual private X11 desktop, not just a headless cmd.exe.
 # The helper exits after the original game window appears, reclaiming its memory.
 session_phase=desktop-readiness
@@ -209,7 +228,7 @@ while ! grep -q '^ST-DESKTOP-READY' "$window_root/logs/desktop-ready.txt" 2>/dev
     fi
     sleep 0.2
 done
-printf '%s\n' 'Private Wine desktop is ready.'
+printf 'Private Wine desktop is ready after %s seconds.\n' "$(($(uptime_seconds)-desktop_start))"
 session_phase=graphics-configuration
 window_gl=gl4es_glxpass
 window_app_libpath="$weston_dir/lib_aarch64/graphics/$window_gl:$weston_dir/lib_aarch64/graphics/crusty_glx:$weston_dir/lib_aarch64"
@@ -249,21 +268,11 @@ if [ "${ST_DEBUG:-0}" = 1 ]; then
     export WINEDEBUG='-all,err+all,warn+d3d8,warn+wined3d,warn+dsound,warn+dmusic,warn+dmloader,fixme+dmscript'
 fi
 # Full game runs without a diagnostic timeout, from its asset directory.
-case "${ST_CPU_MODE:-dynarec}" in
-    interpreter) export BOX64_DYNAREC=0 ;;
-    dynarec)
-        export BOX64_DYNAREC=1 BOX64_DYNAREC_BIGBLOCK=0
-        export BOX64_DYNAREC_FORWARD=0 BOX64_DYNAREC_STRONGMEM=2
-        export BOX64_DYNAREC_SAFEFLAGS=2 BOX64_DYNAREC_CALLRET=0 ;;
-    *) printf '%s\n' 'Invalid ST_CPU_MODE'; exit 2 ;;
-esac
 if [ "${ST_DEBUG:-0}" = 1 ]; then export BOX64_LOG=1; fi
 session_phase=game
 printf 'Launching SchoolTycoon.exe; CPU mode: %s\n' "${ST_CPU_MODE:-dynarec}"
 printf '%s\n' 'Graphics configuration is experimental; this is not a verified playable port.'
 export SDL_GAMECONTROLLERCONFIG_FILE="${SDL_GAMECONTROLLERCONFIG_FILE:-/userdata/system/.local/share/PortMaster/knulli/gamecontrollerdb.txt}"
-LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &
-controls_pid=$!; controls_birth=$(child_start "$controls_pid")
 test -x "$window_root/st-log"
 pipe_dir=$(mktemp -d "$window_root/logs/.pipes.XXXXXX")
 mkfifo "$pipe_dir/stdout" "$pipe_dir/stderr"
@@ -274,6 +283,14 @@ env LD_PRELOAD="$window_app_preload" LD_LIBRARY_PATH="$window_app_libpath" \
     "$window_root/box64" "$wine_dir/bin/wine" ./SchoolTycoon.exe \
     > "$pipe_dir/stdout" 2> "$pipe_dir/stderr" &
 game_pid=$!; game_birth=$(child_start "$game_pid")
+# Enable read-only menu observation only for the exact executable inspected.
+# /proc access failure leaves ordinary pointer controls available.
+unset ST_MENU_GAME_PID ST_MENU_SETTINGS
+if printf '%s  %s\n' 4c4372be0372223864a8648aacfc488fc9ed93d45c9e364609efa11f471b698a "$window_root/gamedata/SchoolTycoon.exe" | sha256sum -c - >/dev/null 2>&1; then
+    export ST_MENU_GAME_PID="$game_pid" ST_MENU_SETTINGS="$window_root/gamedata/settings.dat"
+fi
+LD_LIBRARY_PATH="$weston_dir/lib_aarch64" "$window_root/st-controls" > "$window_root/logs/controls.txt" 2>&1 &
+controls_pid=$!; controls_birth=$(child_start "$controls_pid")
 printf 'Game PID: %s; heap arenas: %s; csmt=0; debug=%s\n' "$game_pid" "$MALLOC_ARENA_MAX" "${ST_DEBUG:-0}"
 sh "$window_root/sample-session.sh" "$game_pid" "$window_root/logs/memory.csv" & telemetry_pid=$!; telemetry_birth=$(child_start "$telemetry_pid")
 while child_alive "$game_pid" "$game_birth"; do

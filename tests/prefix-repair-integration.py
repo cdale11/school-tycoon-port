@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='st-prefix-') as tmp:
     builtin32=root/'runtime/wine-10.0-amd64-wow64/lib/wine/i386-windows'
     builtin32.mkdir()
     (root/'st-media-ready.exe').touch()
-    for name in ['kernel32.dll','kernelbase.dll','ntdll.dll','cmd.exe','dmloader.dll','dmime.dll','dmusic.dll','dmsynth.dll','dsound.dll','mmdevapi.dll','dmband.dll','dmcompos.dll','dmstyle.dll','dmscript.dll','dswave.dll','vbscript.dll']:
+    for name in ['kernel32.dll','kernelbase.dll','ntdll.dll','cmd.exe','dmloader.dll','dmime.dll','dmusic.dll','dmsynth.dll','dsound.dll','mmdevapi.dll','dmband.dll','dmcompos.dll','dmstyle.dll','dmscript.dll','dswave.dll','vbscript.dll','msadp32.acm']:
         (builtin32/name).write_text('32-bit-builtin-'+name)
     system32=root/'prefix-wine-10.0/drive_c/windows/system32'
     system32.mkdir(parents=True)
@@ -53,8 +53,8 @@ if (root/'fail').exists(): sys.exit(7)
 ''')
     wrapper.chmod(0o755)
     (root/'fail').touch()
-    def run():
-        return subprocess.run(['sh',str(root/'prepare-prefix.sh')],env=dict(os.environ,DISPLAY=':123'),capture_output=True,text=True,timeout=20)
+    def run(**overrides):
+        return subprocess.run(['sh',str(root/'prepare-prefix.sh')],env=dict(os.environ,DISPLAY=':123',**overrides),capture_output=True,text=True,timeout=20)
     failed=run()
     assert failed.returncode==7,(failed.stdout,failed.stderr)
     assert (root/'runtime/prefix-repair-pending').exists()
@@ -98,6 +98,12 @@ if (root/'fail').exists(): sys.exit(7)
     assert run().returncode==1, 'Media helper change incorrectly reused old readiness'
     (root/'bad-media').unlink()
     assert run().returncode==0
+    # A missing codec must invalidate a previously verified prefix too.
+    codec=root/'prefix-wine-10.0/drive_c/windows/syswow64/msadp32.acm'
+    assert codec.read_text()=='32-bit-builtin-msadp32.acm'
+    codec.unlink()
+    result=run()
+    assert result.returncode==0 and codec.read_text()=='32-bit-builtin-msadp32.acm'
     # Missing PE32 audio modules trigger restoration and re-registration.
     (root/'prefix-wine-10.0/drive_c/windows/syswow64/mmdevapi.dll').unlink()
     assert run().returncode==0
@@ -118,6 +124,16 @@ if (root/'fail').exists(): sys.exit(7)
     (root/'experimental-directmusic.txt').unlink()
     assert run().returncode==0
     assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':builtin')
+    (root/'runtime/directmusic-enabled').write_text('1')
+    assert run().returncode==0
+    assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':native')
+    assert run(ST_CPU_MODE='interpreter').returncode==0
+    assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':builtin')
+    (root/'audio-mode.txt').write_text('builtin')
+    assert run().returncode==0
+    assert (root/'runtime/prefix-media-verified').read_text().strip().endswith(':builtin')
+    (root/'runtime/directmusic-enabled').unlink()
+    (root/'audio-mode.txt').unlink()
     (root/'prepare-directmusic.sh').unlink()
     assert run().returncode==0, 'Default package requires experimental installer'
     (root/'experimental-directmusic.txt').write_text('1')

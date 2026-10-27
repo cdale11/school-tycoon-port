@@ -59,13 +59,13 @@ modified handheld gamedata, Wine prefix, cpu-mode.txt or runtime directory.
 For default settings, omit the old `settings.dat` and leave `Data/SAVED_GAMES`
 empty. The VM also showed zero effects/music sliders after default settings were
 regenerated, so silence is not attributed solely to the imported PC profile.
-Check the in-game sliders, but raising them is not a verified audio fix.
+Raise both sliders if needed; the current codec repair is also required for native music.
 
 PortMaster must be installed with its Weston runtime available. Keep at least
 2 GiB free after copying game assets. Connect Wi-Fi for the initial verified
 Wine download. Keep the verified cache for repair without another download.
-The default package uses builtin Wine media; the failed native-media experiment
-is excluded. Refresh KNULLI's game list and launch School Tycoon under Ports,
+The current package installs checksum-pinned native DirectMusic once and repairs
+missing ADPCM codecs. Keep Wi-Fi available for this first setup. Refresh KNULLI's game list and launch School Tycoon under Ports,
 or run `sh "/userdata/roms/ports/School Tycoon.sh"` over SSH.
 
 First-run prefix initialization allows up to ten minutes; later 32-bit execution
@@ -78,7 +78,7 @@ before the game. Inspect `logs/game.txt`, `logs/prefix-setup.txt` and
 progress. Failed readiness prevents game launch; do not repeatedly start a
 second session while the first is running.
 
-D-pad moves the pointer; A/B are left/right mouse buttons. L1 gives precise
+D-pad selects buttons on recognized Main/Play/Credits screens; other screens use the pointer. A/B are left/right mouse buttons. L1 gives precise
 movement; Start is Enter, X is Space, Y is Escape. Fn/Guide + Start exits;
 Select + Start is the fallback. Save before exiting. Physical Fn mapping is
 still unverified. Use 800x600 and Low detail where available.

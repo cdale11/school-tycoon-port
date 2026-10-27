@@ -22,13 +22,8 @@ static pthread_mutex_t report_lock = PTHREAD_MUTEX_INITIALIZER;
 static int reported;
 static void *(*sdl_window)(void);
 static void (*sdl_size)(void *,int *,int *);
-static void (*native_float)(unsigned,float *);
-static void (*native_boolean)(unsigned,unsigned char *);
 static unsigned char (*native_enabled)(unsigned);
 static void (*native_enable)(unsigned), (*native_disable)(unsigned);
-static void (*native_clear_color)(float,float,float,float);
-static void (*native_color_mask)(unsigned char,unsigned char,unsigned char,unsigned char);
-static void (*native_clear)(unsigned);
 static int logical_width,logical_height,fit_x,fit_y,fit_width,fit_height;
 static int (*real_cursor_position)(int *,int *);
 
@@ -54,14 +49,9 @@ static void resolve_symbols(void) {
         native_get = dlsym(native, "glGetIntegerv");
         native_bind = dlsym(native, "glBindFramebuffer");
         native_blit = dlsym(native, "glBlitFramebuffer");
-        native_float=dlsym(native,"glGetFloatv");
-        native_boolean=dlsym(native,"glGetBooleanv");
         native_enabled=dlsym(native,"glIsEnabled");
         native_enable=dlsym(native,"glEnable");
         native_disable=dlsym(native,"glDisable");
-        native_clear_color=dlsym(native,"glClearColor");
-        native_color_mask=dlsym(native,"glColorMask");
-        native_clear=dlsym(native,"glClear");
     }
     /* Keep these handles alive with the native graphics session. */
 }
@@ -102,8 +92,7 @@ void glBlitFramebuffer(int sx0, int sy0, int sx1, int sy1,
         native_bind(0x8ca8, source);      /* GL_READ_FRAMEBUFFER */
         native_bind(0x8ca9, destination); /* GL_DRAW_FRAMEBUFFER */
         int fitted=0;
-        unsigned char scissor=0, color_mask[4]={0};
-        float clear_color[4]={0};
+        unsigned char scissor=0;
         /* Only a full-window color presentation is resized. Offscreen and
          * partial copies keep their original coordinates and state. */
         int viewport[4]={0}; desktop_get(0x0ba2,viewport);
@@ -116,13 +105,12 @@ void glBlitFramebuffer(int sx0, int sy0, int sx1, int sy1,
             * Match the complete source and destination instead. */
            right==800 && top==600 && !sx0 && !sy0 && sx1==800 && sy1==600 &&
            sdl_window && sdl_size &&
-           native_float && native_boolean && native_enabled && native_enable &&
-           native_disable && native_clear_color && native_color_mask && native_clear) {
+           native_enabled && native_enable && native_disable) {
             void *window=sdl_window(); int width=0,height=0;
             if(window) sdl_size(window,&width,&height);
             if(width>0 && height>0) {
-                int fw=width,fh=(int)((long long)width*top/right);
-                if(fh>height) {fh=height;fw=(int)((long long)height*right/top);}
+                /* Fill the physical panel; the user prefers stretching over bars. */
+                int fw=width,fh=height;
                 if(fw>0 && fh>0) {
                     pthread_mutex_lock(&report_lock);
                     if(logical_width!=right || logical_height!=top || fit_width!=fw || fit_height!=fh)
@@ -133,17 +121,14 @@ void glBlitFramebuffer(int sx0, int sy0, int sx1, int sy1,
                     dy0=fit_y+(reverse_y?fh:0);dy1=fit_y+(reverse_y?0:fh);
                     pthread_mutex_unlock(&report_lock);
                     scissor=native_enabled(0x0c11);
-                    native_float(0x0c22,clear_color);native_boolean(0x0c23,color_mask);
-                    native_disable(0x0c11);native_color_mask(1,1,1,1);
-                    native_clear_color(0,0,0,1);native_clear(0x4000);
+                    if(scissor) native_disable(0x0c11);
+                    /* Full-panel copy overwrites every pixel: no bar clear. */
                     fitted=1;
                 }
             }
         }
         native_blit(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter);
         if(fitted) {
-            native_clear_color(clear_color[0],clear_color[1],clear_color[2],clear_color[3]);
-            native_color_mask(color_mask[0],color_mask[1],color_mask[2],color_mask[3]);
             if(scissor) native_enable(0x0c11);
         }
         native_bind(0x8ca8, previous_source);

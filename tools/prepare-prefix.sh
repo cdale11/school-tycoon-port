@@ -23,7 +23,7 @@ if [ -f "$prefix_pending" ] || [ ! -f "$prefix_verified" ] || [ ! -f "$prefix_me
 for prefix_dll in wow64.dll wow64cpu.dll wow64win.dll kernel32.dll kernelbase.dll ntdll.dll; do
     if [ ! -s "$WINEPREFIX/drive_c/windows/system32/$prefix_dll" ]; then prefix_ready=false; fi
 done
-for prefix_dll in kernel32.dll kernelbase.dll ntdll.dll cmd.exe dmloader.dll dmime.dll dmusic.dll dmsynth.dll dsound.dll mmdevapi.dll dmband.dll dmcompos.dll dmstyle.dll dmscript.dll dswave.dll vbscript.dll; do
+for prefix_dll in kernel32.dll kernelbase.dll ntdll.dll cmd.exe dmloader.dll dmime.dll dmusic.dll dmsynth.dll dsound.dll mmdevapi.dll dmband.dll dmcompos.dll dmstyle.dll dmscript.dll dswave.dll vbscript.dll msadp32.acm; do
     if [ ! -s "$WINEPREFIX/drive_c/windows/syswow64/$prefix_dll" ]; then prefix_ready=false; fi
 done
 if [ "$media_stack" = native ]; then
@@ -50,7 +50,7 @@ restore_prefix_modules() {
         if [ "$prefix_arch" = i386-windows ]; then prefix_system=syswow64; fi
         prefix_dest="$WINEPREFIX/drive_c/windows/$prefix_system"
         mkdir -p "$prefix_dest"
-        for prefix_source in "$prefix_wine/lib/wine/$prefix_arch/"*.dll "$prefix_wine/lib/wine/$prefix_arch/"*.exe "$prefix_wine/lib/wine/$prefix_arch/"*.drv "$prefix_wine/lib/wine/$prefix_arch/"*.sys; do
+        for prefix_source in "$prefix_wine/lib/wine/$prefix_arch/"*.dll "$prefix_wine/lib/wine/$prefix_arch/"*.exe "$prefix_wine/lib/wine/$prefix_arch/"*.drv "$prefix_wine/lib/wine/$prefix_arch/"*.sys "$prefix_wine/lib/wine/$prefix_arch/"*.acm; do
             [ -f "$prefix_source" ] || continue
             prefix_module=${prefix_source##*/}
             if [ ! -s "$prefix_dest/$prefix_module" ]; then

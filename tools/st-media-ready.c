@@ -8,6 +8,8 @@
 #include <objbase.h>
 #include <mmsystem.h>
 #include <dsound.h>
+#include <mmreg.h>
+#include <msacm.h>
 #include <dmusici.h>
 #include <mmdeviceapi.h>
 static const GUID media_device_enumerator={0xbcde0395,0xe52f,0x467c,
@@ -66,6 +68,20 @@ void media_start(void) {
         "{58C2B4D0-46E7-11D1-89AC-00A0C9054129}");
     ensure_value("Software\\Microsoft\\DirectMusic\\SoftwareSynths\\{58C2B4D0-46E7-11D1-89AC-00A0C9054129}",
         "Description","Microsoft Software Synthesizer");
+    /* The original SGT assets contain Microsoft ADPCM. COM registration alone
+     * can succeed while the missing .acm decoder silently prevents all music. */
+    struct {
+        WAVEFORMATEX format;
+        WORD samples_per_block, coefficient_count;
+        ADPCMCOEFSET coefficients[7];
+    } source={{WAVE_FORMAT_ADPCM,2,44100,44359,2048,4,32},2036,7,
+        {{256,0},{512,-256},{0,0},{192,64},{240,0},{460,-208},{392,-232}}};
+    WAVEFORMATEX pcm={WAVE_FORMAT_PCM,2,44100,176400,4,16,0};
+    HACMSTREAM decoder=NULL;
+    MMRESULT codec=acmStreamOpen(&decoder,NULL,&source.format,&pcm,NULL,0,0,0);
+    if(codec)fail("Microsoft ADPCM decoder",HRESULT_FROM_WIN32(codec));
+    acmStreamClose(decoder,0);
+    report("Media codec: Microsoft ADPCM ready\r\n");
     HRESULT status=CoInitialize(NULL);
     if(FAILED(status))fail("CoInitialize",status);
     static const struct {const GUID *id;const char *name;} classes[]={

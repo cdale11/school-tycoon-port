@@ -4,7 +4,8 @@ INSTALL OR UPDATE
 Stop School Tycoon. Extract school-tycoon-handheld.tar.gz into
 /userdata/roms/ports/, replacing the included files. Do not delete your existing
 gamedata, prefix-wine-10.0 or linked runtime-probe directory. No assets, saves,
-settings or Wine prefix are included in this archive.
+settings or Wine prefix are included in this archive. Remove an old cpu-mode.txt
+interpreter override to use the default dynarec/native-audio path.
 
 For a fresh reset, see docs/fresh-install.md in the repository. Move both old
 school-tycoon and school-tycoon-runtime-probe directories out of Ports first
@@ -28,14 +29,18 @@ Native graphics failure also stops the session rather than leaving a black scree
 The native SDL/EGL surface, shader compiler and a tiny draw/readback now run
 before Wine's address reservations. Initial graphics logs are preserved separately.
 Repeated GPU allocation/framebuffer failures stop the session automatically.
-This is a candidate fix for the reported Mali surface failure, not a confirmed
-physical-device pass. No KNULLI Quick Resume or boot-game settings are changed.
+The user confirms graphics on the handheld. The new scaling/audio/menu changes
+still need physical-device confirmation. No KNULLI Quick Resume or boot-game settings are changed.
 When Quick Resume is enabled, KNULLI itself can arm a boot target before starting
 the port. See docs/handheld-display-audit.md for the audit and emulator limits.
 This is a compatibility launcher for the original game, not a rewritten engine.
 
 CONTROLS
-D-pad: pointer; A: left click/hold to drag; B: right click.
+D-pad: select buttons on recognized Main, Play Select and Credits screens;
+first direction focuses the first button. A selects. Other screens: pointer.
+Requires the verified original executable; unavailable observation falls back
+to pointer control. This adapter reads game state without changing game memory.
+A: left click/hold to drag; B: right click.
 L1 held: precise pointer; X: Space; Y: Escape; Start: Enter.
 R1: Tab; L2/R2: Page Up/Down. USB input on the handheld is unverified.
 Fn/Guide + Start exits this game session; Select + Start is the fallback.
@@ -46,11 +51,11 @@ Optimized Box64 with conservative game dynarec, Cortex-A53 native helpers, bound
 arenas and single-context rendering are the default. Native Mali EGL/GLES is
 selected on the handheld. No software Mesa renderer is bundled. Select Low detail
 and 800x600 in-game when available. No settings or save is edited automatically.
-The game uses conservative dynarec; prefix/desktop startup use interpretation.
+The game and desktop use conservative dynarec; prefix repair uses interpretation.
 Put interpreter in cpu-mode.txt for the slower fallback; remove it to restore
 the default. Forced multithreaded rendering remains disabled.
-The 800x600 game image fits into a centered 640x480 area on the 720x480 output.
-Keep 800x600 selected; the fit does not cover other game resolutions.
+The 800x600 game image stretches across the entire 720x480 output, without side bars.
+Keep 800x600 selected; stretching and menu navigation target that resolution.
 Symbols are stripped to reduce storage, not claimed as a RAM saving.
 
 SAVES
@@ -61,13 +66,16 @@ directory until its prefix and Wine runtime have been backed up/moved.
 AUDIO
 Wine uses the firmware native audio backend; volume/mute/output still apply.
 Raise Sound Effects and Music in the game Settings if they are at minimum.
-This is not a verified music fix: native DirectMusic playback remains broken.
-The launcher preserves an existing per-user PulseAudio connection when creating
-its private display session. The PE32 helper registers and checks 13 media COM
-classes. Registration is not proof of playback: original-game audio remains
-unverified and Wine 10 scripted music has incomplete implementation. The native
-DirectMusic experiment caused a black-screen/audio regression and is excluded
-from this package. No DirectX download or CAB extractor is needed by this build.
+The package enables native DirectMusic and restores Wine's missing Microsoft
+ADPCM codec. Original menu music now passes a non-silent, unclipped VM capture.
+This does not certify the handheld speaker path or every sound in the game.
+The first update may download the checksum-pinned Microsoft runtime once; the
+DLLs are extracted locally, never bundled with the package. Later starts reuse it.
+The launcher preserves the existing PulseAudio connection. Prefix readiness
+checks both media classes and ADPCM decoding support. Keep dynarec enabled for
+native audio; the interpreter fallback selects builtin media because native
+DirectSound distorted the interpreter test. To keep dynarec but disable native
+media, put builtin in audio-mode.txt. Remove that file to restore native media.
 The port does not implement rumble.
 
 DIAGNOSTICS
@@ -86,25 +94,16 @@ dumps or game assets. Send the whole logs directory if startup fails.
 No fixed black-screen timer proves readiness; consult the launch phase and logs.
 
 VALIDATION LIMITS
-ARM64 VM: intro, menus, classroom placement, save, Day 3 and eight students;
-roughly 688–701 MiB game RSS, no process swap during observed scenes. This is
-process memory, not total device memory. The VM uses software GLES and a virtual
-board. It cannot emulate Mali-G31/libmali, H700 display/audio or physical controls.
-Handheld gameplay, sound, scaling and usable speed remain unverified. This is
-a release candidate, not a guarantee of a production-ready handheld port.
-Licenses and runtime source links are in school-tycoon/BUILD-NOTICES.txt.
+The latest ARM64 VM test renders Main/Settings across the full panel, opens
+Settings using D-pad/A and captures unclipped original menu music. Earlier builds
+reached a school, placed a classroom, saved and reached Day 3 with eight students.
+Those older scene-memory figures do not validate native-audio school memory.
+The new menu fixture used about 345 MiB game RSS, not total device memory.
+The VM uses software GLES and a virtual audio sink; it cannot reproduce Mali,
+physical speakers/buttons or real handheld loading speed. Intro skipping and a
+school-loading speedup are not established. This remains a release candidate.
+See docs/audio-menu-update.md in the repository for exact evidence and limits.
+Licenses and source links are in school-tycoon/BUILD-NOTICES.txt.
 
 README text files may be edited without failing the package integrity check.
 Executable scripts and runtime binaries remain checksum verified.
-The latest handheld run passed native GPU warmup but failed subsequent GL4ES
-shader linking. This package adds failed-shader source reporting; it does not
-claim that this unresolved rendering failure is fixed.
-
-The native GLX binding correction now binds/releases the owned GLES context on
-the calling thread. An ARM64 before/after test reproduces the old bridge defect
-and passes with the correction. Physical handheld rendering is still unverified.
-
-Native driver mapping update: BOX64_MMAP32=0 leaves native driver allocations
-to the kernel instead of forcing low addresses after PE32 startup. Explicit
-32-bit guest allocations remain handled by Wine/Box64. Mali display success
-still requires hardware verification. Existing data and prefix are preserved.

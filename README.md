@@ -1,10 +1,12 @@
 # School Tycoon for RG34XXSP
 
-The user confirms that game graphics now appear on the handheld with
-`BOX64_MMAP32=0`. Sound is still missing, the pointer and menu animation are
-slow, and the image was cropped/off-center. This update fits the 800×600 image
-to the display and enables conservative game dynarec. The emulator shows the
-full Settings screen and accepts clicks; handheld speed and sound remain unresolved. See the [display audit](docs/handheld-display-audit.md).
+The handheld now shows graphics and the user reports faster gameplay with
+conservative dynarec. This update stretches the 800×600 image across the full
+720×480 panel, adds D-pad selection on recognized Main/Play/Credits screens,
+uses conservative dynarec for desktop startup, and repairs missing ADPCM codecs
+with native DirectMusic. The original game's menu music now passes an unclipped
+VM capture. Handheld audio and shorter school-loading times remain unverified. See the
+[current validation report](docs/audio-menu-update.md).
 README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab
@@ -16,13 +18,15 @@ actual Mali device is not yet certified.**
 [Fresh installation instructions](docs/fresh-install.md) ·
 [Second audit and fresh emulator results](docs/fresh-validation.md)
 
-The second audit found unresolved original-game audio failures. The failed
-native-media experiment is excluded from the default build. See the fresh
-validation report for separate rendering, controls and audio results.
+The earlier native-media failure was traced to missing `.acm` codecs in the
+32-bit prefix. This build repairs them and checks ADPCM support before launch.
+Native media is downloaded and checksum-verified once on the device; proprietary
+DLLs are never bundled. See the [current validation report](docs/audio-menu-update.md) for evidence and limits.
 
 [Download school-tycoon-handheld.tar.gz](releases/school-tycoon-handheld.tar.gz).
 Stop the game and extract it into `/userdata/roms/ports/`, replacing included
-files. Keep existing game data, saves and the Wine prefix. The archive contains
+files. Remove an old `school-tycoon/cpu-mode.txt` interpreter override to use
+the default dynarec/native-audio path. Keep existing game data, saves and the Wine prefix. The archive contains
 no proprietary game assets, saves, settings, prefix, emulator or diagnostic probes.
 
 For a new installation, copy the contents of your original `ST` folder into
@@ -35,7 +39,11 @@ First prefix setup may take several minutes; subsequent launches reuse it.
 A temporary helper checks the private Wine desktop before game startup and exits
 when the original game window opens. Desktop failure/timeout is logged separately.
 
-D-pad moves the pointer; A/B click left/right; L1 gives precise movement; X is
+On the verified original executable, D-pad selects buttons on Main, Play Select
+and Credits; A clicks the selected button. The first direction focuses the first
+button. Other screens retain pointer control. Hold L1 for precise pointer control
+on any screen. This is a compatibility adapter, not native controller support in
+the original game. A/B click left/right; X is
 Space; Y is Escape; Start is Enter; R1 is Tab; L2/R2 are Page Up/Down.
 **Fn/Guide + Start exits; Select + Start is the fallback. Save first.**
 Physical Fn mapping and USB input on the handheld remain unverified.
@@ -44,7 +52,9 @@ Back up `school-tycoon/gamedata` and `school-tycoon/prefix-wine-10.0`, following
 links when applicable. Retain any old runtime-probe directory still targeted
 by prefix/runtime links. No reset is required. Conservative dynarec is now the game default. To fall back to interpretation,
 put `interpreter` in `school-tycoon/cpu-mode.txt`; remove that file to restore
-the default. Prefix and desktop setup still use interpretation.
+the default. Native audio requires dynarec; the interpreter fallback selects builtin media.
+Put `builtin` in `audio-mode.txt` for an audio fallback while retaining dynarec.
+Prefix creation/repair still uses interpretation; desktop startup follows the selected CPU mode.
 
 ## Memory and diagnostics
 
@@ -71,19 +81,19 @@ use the handheld archive for the current game build.
 The current fresh VM audit reaches a new Farmland school and writes a new save;
 simulated Fn/Guide + Start exits the actual game. Scene RSS is about 611–613 MiB,
 with an observed 626 MiB process high-water value and no process swap. Original
-game audio fails the capture check. This remains a development candidate.
+game audio failed that earlier audit; the repaired build now passes the menu-music capture. This remains a release candidate.
 
 - Actual handheld, earlier tests: Box64 execution, Wine interpreter Windows
   commands, native Mali EGL/GLES pixels and a Windows GDI window. The latest user test confirms that game graphics now appear on Mali,
-  with cropping, slow animation/input and missing sound.
+  with improved animation/input speed but unwanted side bars and missing sound.
 - Earlier ARM64 VM builds: original intro/menus, classroom placement and save, Day 3 with
   eight students. Sustained scene runs stayed around 688–701 MiB game RSS with
   no process swap. This is not total device memory or a Mali memory estimate.
 - Integration checks: controller motion/clicks/input release/Fn exit, launcher
   working directory and owned-process cleanup, Wine cache recovery, prefix
   preservation, bounded logging, ELF architecture and package checksums.
-- Unresolved on handheld: correct scaling, sound, responsive controls and
-  playable speed. The current conservative dynarec fixture exits normally through the shortcut;
+- Still requiring handheld confirmation: full-panel scaling and menu selection.
+  The repaired audio path needs handheld confirmation; school-loading delays remain unmeasured. The current conservative dynarec fixture exits normally through the shortcut;
   older dynarec experiments exited 137. Weston previously showed a teardown assertion.
 
 The VM matches Cortex-A53, four cores, ARM64, 4 KiB pages, 39-bit address space,

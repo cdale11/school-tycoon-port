@@ -39,21 +39,21 @@ int main(void){
  #define V(n) (*(int*)dlsym(h,#n))
  int *r=dlsym(h,"rect");float *color=dlsym(h,"color");unsigned char *mask=dlsym(h,"mask");
  glBlitFramebuffer(0,0,800,600,0,0,800,600,0x4000,0x2600);
- assert(r[0]==40&&r[1]==0&&r[2]==680&&r[3]==480);
- assert(V(readfb)==7&&V(drawfb)==9&&V(scissor)==1&&V(clears)==1);
+ assert(r[0]==0&&r[1]==0&&r[2]==720&&r[3]==480);
+ assert(V(readfb)==7&&V(drawfb)==9&&V(scissor)==1&&V(clears)==0);
  assert(color[0]==.2f&&color[3]==.5f&&mask[0]==0&&mask[3]==1);
  int x,y;assert(cursor_get_position(&x,&y)&&x==360&&y==240);
  /* Wine reverses Y when copying into its on-screen drawable. */
  glBlitFramebuffer(0,0,800,600,0,600,800,0,0x4000,0x2600);
- assert(r[0]==40&&r[1]==480&&r[2]==680&&r[3]==0);
- V(clears)=1;
+ assert(r[0]==0&&r[1]==480&&r[2]==720&&r[3]==0);
+ V(clears)=0;
  V(destination)=2;glBlitFramebuffer(0,0,800,600,0,0,800,600,0x4000,0x2600);
- assert(r[2]==800&&r[3]==600&&V(clears)==1);
+ assert(r[2]==800&&r[3]==600&&V(clears)==0);
  V(destination)=0;glBlitFramebuffer(0,0,16,16,0,0,16,16,0x4000,0x2600);
- assert(r[2]==16&&r[3]==16&&V(clears)==1);
+ assert(r[2]==16&&r[3]==16&&V(clears)==0);
  V(width)=480;V(height)=720;
  glBlitFramebuffer(0,0,800,600,0,0,800,600,0x4000,0x2600);
- assert(r[0]==0&&r[1]==180&&r[2]==480&&r[3]==540);
+ assert(r[0]==0&&r[1]==0&&r[2]==480&&r[3]==720);
  assert(cursor_get_position(&x,&y)&&x==240&&y==360);
  return 0;
 }
@@ -66,4 +66,4 @@ int main(void){
  # The production resolver requires loaded handles, so preload both libraries.
  env=dict(os.environ,LD_PRELOAD=str(p/'desktop.so')+':'+str(p/'mock.so'),BOX64_LIBGL=str(p/'desktop.so'),SDL_VIDEO_GL_DRIVER=str(p/'mock.so'),CRUSTY_LIBSDL=str(p/'mock.so'),ST_CRUSTY_LIBRARY=str(p/'mock.so'))
  subprocess.run([str(p/'test')],env=env,check=True,timeout=10)
- print('PASS: aspect fit, bars, cursor coordinates, GL state, offscreen/partial copies')
+ print('PASS: full-panel stretch, cursor coordinates, GL state, offscreen/partial copies')
