@@ -20,7 +20,7 @@ int main(void) {
  setenv("ST_MENU_SETTINGS",settings,1);assert(st_menu_resolution());
  word(sf,40,1024);assert(!st_menu_resolution());close(sf);unlink(settings);
 
- unsetenv("ST_MENU_GAME_PID"); assert(st_menu_open()==-1);
+ unsetenv("ST_MENU_GAME_PID"); assert(st_menu_open()==-1); assert(st_menu_refresh(-1)==-1);
  setenv("ST_MENU_GAME_PID","1/../../bad",1);assert(st_menu_open()==-1);
  char path[]="/tmp/st-menu-XXXXXX";int fd=mkstemp(path);assert(fd>=0);unlink(path);
  assert(st_menu_read(fd)==NULL);

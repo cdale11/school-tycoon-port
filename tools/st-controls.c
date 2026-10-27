@@ -35,6 +35,8 @@ int main(void) {
     FN(x, int, XCloseDisplay, (void *));
     FN(x, unsigned char, XKeysymToKeycode, (void *, unsigned long));
     FN(x, int, XFlush, (void *));
+    FN(x, unsigned long, XDefaultRootWindow, (void *));
+    FN(x, int, XQueryPointer, (void *, unsigned long, unsigned long *, unsigned long *, int *, int *, int *, int *, unsigned *));
     FN(t, int, XTestFakeButtonEvent, (void *, unsigned, int, unsigned long));
     FN(t, int, XTestFakeKeyEvent, (void *, unsigned, int, unsigned long));
     FN(t, int, XTestFakeRelativeMotionEvent, (void *, int, int, unsigned long));
@@ -64,7 +66,7 @@ int main(void) {
     int requested_exit = 0;
     int menu_fd=st_menu_open(), selected=-1, old_dx=0, old_dy=0;
     const struct st_menu_layout *menu=NULL, *observed=NULL;
-    int resolution_ok=0;
+    int resolution_ok=0, refresh=0, pointer_started=0, image_reported=0;
     while(running) {
         SDL_GameControllerUpdate();
         if (pad && !SDL_GameControllerGetAttached(pad)) { fputs("Controller disconnected\n",stderr); for(int i=0;i<8;i++) if(old[i]) {
@@ -83,6 +85,15 @@ int main(void) {
             for(int i=0;i<6;i++) now[i]=!!SDL_GameControllerGetButton(pad,buttons[i]);
             now[6]=SDL_GameControllerGetAxis(pad,4)>16000;
             now[7]=SDL_GameControllerGetAxis(pad,5)>16000;
+            /* /proc/PID/mem refers to an address space, not a PID. Wine can
+             * exec after we open it; periodically reopen an unreadable image. */
+            if(refresh++%60==0) {
+                menu_fd=st_menu_refresh(menu_fd);
+                if(!image_reported && st_menu_u32(menu_fd,0x400000)==0x00905a4d) {
+                    fputs("Menu observer: game image readable\n",stderr);image_reported=1;
+                }
+                resolution_ok=st_menu_resolution();
+            }
             const struct st_menu_layout *current=st_menu_read(menu_fd);
             if(current!=observed) {resolution_ok=st_menu_resolution();observed=current;}
             if(!resolution_ok) current=NULL;
@@ -96,11 +107,26 @@ int main(void) {
             if(menu && !precision) {
                 if((dx||dy) && (dx!=old_dx||dy!=old_dy)) {
                     selected=st_menu_next(menu,selected,(dx>0)-(dx<0),dx?0:(dy>0)-(dy<0));
+                    pointer_started=1;
                     XTestFakeMotionEvent(display,-1,menu->points[selected].x,menu->points[selected].y,0);
                 }
             } else if(dx||dy) {
                 selected=-1;
-                XTestFakeRelativeMotionEvent(display,dx,dy,0);
+                if(resolution_ok) {
+                    unsigned long root,child;unsigned mask;int rx,ry,wx,wy;
+                    if(XQueryPointer(display,XDefaultRootWindow(display),&root,&child,&rx,&ry,&wx,&wy,&mask)) {
+                        if(!pointer_started || rx<0 || rx>=800 || ry<0 || ry>=600) {
+                            rx=400;ry=300;pointer_started=1;
+                            fputs("Pointer initialized inside 800x600 game area\n",stderr);
+                        }
+                        rx+=dx;ry+=dy;
+                        if(rx<0) rx=0;
+                        if(rx>799) rx=799;
+                        if(ry<0) ry=0;
+                        if(ry>599) ry=599;
+                        XTestFakeMotionEvent(display,-1,rx,ry,0);
+                    }
+                } else XTestFakeRelativeMotionEvent(display,dx,dy,0);
             }
             old_dx=dx; old_dy=dy;
         }

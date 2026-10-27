@@ -1,12 +1,11 @@
 # School Tycoon for RG34XXSP
 
-The handheld now shows graphics and the user reports faster gameplay with
-conservative dynarec. This update stretches the 800×600 image across the full
-720×480 panel, adds D-pad selection on recognized Main/Play/Credits screens,
-uses conservative dynarec for desktop startup, and repairs missing ADPCM codecs
-with native DirectMusic. The original game's menu music now passes an unclipped
-VM capture. Handheld audio and shorter school-loading times remain unverified. See the
-[current validation report](docs/audio-menu-update.md).
+The user confirms working graphics, sound and faster gameplay on the handheld.
+The latest update isolates cursor graphics state, keeps pointer movement inside
+the game area and repairs menu observation across Wine startup. Cursor-box and
+text-rendering symptoms still need handheld confirmation; shorter school-loading
+times are not verified. See the [cursor repair and validation report](docs/cursor-controls-update.md)
+and [audio validation](docs/audio-menu-update.md).
 README edits remain excluded from startup checksums.
 
 A compatibility launcher for the original School Tycoon (2004) on KNULLI Scarab

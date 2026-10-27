@@ -29,8 +29,8 @@ Native graphics failure also stops the session rather than leaving a black scree
 The native SDL/EGL surface, shader compiler and a tiny draw/readback now run
 before Wine's address reservations. Initial graphics logs are preserved separately.
 Repeated GPU allocation/framebuffer failures stop the session automatically.
-The user confirms graphics on the handheld. The new scaling/audio/menu changes
-still need physical-device confirmation. No KNULLI Quick Resume or boot-game settings are changed.
+The user confirms graphics, sound and improved speed on the handheld. The latest
+cursor-state isolation and bounded-pointer repair need physical confirmation. No KNULLI Quick Resume or boot-game settings are changed.
 When Quick Resume is enabled, KNULLI itself can arm a boot target before starting
 the port. See docs/handheld-display-audit.md for the audit and emulator limits.
 This is a compatibility launcher for the original game, not a rewritten engine.
@@ -40,6 +40,7 @@ D-pad: select buttons on recognized Main, Play Select and Credits screens;
 first direction focuses the first button. A selects. Other screens: pointer.
 Requires the verified original executable; unavailable observation falls back
 to pointer control. This adapter reads game state without changing game memory.
+Pointer movement starts inside the game area and stays within 800x600 bounds.
 A: left click/hold to drag; B: right click.
 L1 held: precise pointer; X: Space; Y: Escape; Start: Enter.
 R1: Tab; L2/R2: Page Up/Down. USB input on the handheld is unverified.

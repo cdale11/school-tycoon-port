@@ -77,6 +77,73 @@ int cursor_get_position(int *x,int *y) {
     return ok;
 }
 
+/* Isolate the native overlay from GL4ES's cached game state. In particular,
+ * Wine can leave a 256x1 viewport, subtract blending, a sampler, or unpack
+ * buffer/row offsets active. These must not affect the cursor texture/draw. */
+static pthread_once_t cursor_once=PTHREAD_ONCE_INIT;
+static void (*draw_cursor)(void);
+static void (*cg)(unsigned,int*), (*active)(unsigned), (*texture)(unsigned,unsigned);
+static void (*buffer)(unsigned,unsigned), (*vao)(unsigned), (*program)(unsigned);
+static void (*viewport_fn)(int,int,int,int), (*equation)(unsigned,unsigned);
+static void (*blend_fn)(unsigned,unsigned,unsigned,unsigned);
+static void (*color_mask)(unsigned char,unsigned char,unsigned char,unsigned char);
+static void (*pixel_store)(unsigned,int), (*sampler)(unsigned,unsigned);
+static int cursor_ready;
+static void resolve_cursor(void) {
+    void *n=loaded_library("SDL_VIDEO_GL_DRIVER","/usr/lib/libGLESv2.so.2");
+    void *b=loaded_library("ST_CRUSTY_LIBRARY","libcrusty.so");
+    if(!n || !b) return;
+    draw_cursor=dlsym(b,"cursor_draw");
+#define C(var,name) var=dlsym(n,name); if(!var) return
+    C(cg,"glGetIntegerv"); C(active,"glActiveTexture"); C(texture,"glBindTexture");
+    C(buffer,"glBindBuffer"); C(vao,"glBindVertexArray"); C(program,"glUseProgram");
+    C(viewport_fn,"glViewport"); C(equation,"glBlendEquationSeparate");
+    C(blend_fn,"glBlendFuncSeparate"); C(color_mask,"glColorMask");
+    C(pixel_store,"glPixelStorei"); C(sampler,"glBindSampler");
+#undef C
+    cursor_ready=1;
+}
+void cursor_draw(void) {
+    pthread_once(&symbols_once,resolve_symbols);
+    pthread_once(&cursor_once,resolve_cursor);
+    if(!draw_cursor || draw_cursor==cursor_draw) return;
+    if(!cursor_ready || !native_enabled || !native_enable || !native_disable || !sdl_window || !sdl_size) { draw_cursor(); return; }
+    int width=0,height=0; void *window=sdl_window();
+    if(window) sdl_size(window,&width,&height);
+    if(width<=0 || height<=0) return;
+    /* Save the original active unit before forcing all overlay work to unit 0. */
+    int unit; cg(0x84e0,&unit); active(0x84c0);
+    const unsigned names[]={0x8069,0x8919,0x85b5,0x8894,0x8b8d,
+        0x8009,0x883d,0x80c9,0x80c8,0x80cb,0x80ca,
+        0x88ef,0x0cf5,0x0cf2,0x0cf3,0x0cf4};
+    int saved[16],vp[4],mask[4];
+    for(unsigned i=0;i<16;i++) cg(names[i],&saved[i]);
+    cg(0x0ba2,vp);cg(0x0c23,mask);
+    const unsigned caps[]={0x0be2,0x0b71,0x0c11,0x0b90,0x0b44,0x8c89,0x809e,0x80a0};
+    unsigned char enabled[8];
+    for(unsigned i=0;i<8;i++) {enabled[i]=native_enabled(caps[i]);native_disable(caps[i]);}
+    viewport_fn(0,0,width,height);color_mask(1,1,1,1);
+    equation(0x8006,0x8006);sampler(0,0);
+    buffer(0x88ec,0);pixel_store(0x0cf5,4);
+    pixel_store(0x0cf2,0);pixel_store(0x0cf3,0);pixel_store(0x0cf4,0);
+    draw_cursor();
+    static int cursor_reported;
+    pthread_mutex_lock(&report_lock);
+    if(!cursor_reported) {
+        fprintf(stderr,"ST cursor: isolated native overlay %dx%d; restored game viewport %dx%d\n",width,height,vp[2],vp[3]);
+        cursor_reported=1;
+    }
+    pthread_mutex_unlock(&report_lock);
+    active(0x84c0);texture(0x0de1,saved[0]);sampler(0,saved[1]);
+    vao(saved[2]);buffer(0x8892,saved[3]);program(saved[4]);
+    equation(saved[5],saved[6]);blend_fn(saved[7],saved[8],saved[9],saved[10]);
+    buffer(0x88ec,saved[11]);
+    for(unsigned i=12;i<16;i++) pixel_store(names[i],saved[i]);
+    viewport_fn(vp[0],vp[1],vp[2],vp[3]);color_mask(mask[0],mask[1],mask[2],mask[3]);
+    for(unsigned i=0;i<8;i++) {if(enabled[i]) native_enable(caps[i]);else native_disable(caps[i]);}
+    active(unit);
+}
+
 void glBlitFramebuffer(int sx0, int sy0, int sx1, int sy1,
                       int dx0, int dy0, int dx1, int dy1, unsigned mask, unsigned filter) {
     pthread_once(&symbols_once, resolve_symbols);

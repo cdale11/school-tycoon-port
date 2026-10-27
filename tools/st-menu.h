@@ -38,8 +38,16 @@ static int st_menu_open(void) {
     if (*end || value<=1 || value>INT_MAX) return -1;
     char path[64]; snprintf(path,sizeof(path),"/proc/%ld/mem",value);
     int fd=open(path,O_RDONLY|O_CLOEXEC);
-    fprintf(stderr,"Menu observer: %s; unknown screens use pointer controls\n",fd<0?"unavailable":"read-only");
+    static int reported=-2;
+    int status=fd<0?-1:0;
+    if(status!=reported) fprintf(stderr,"Menu observer: %s; unknown screens use pointer controls\n",fd<0?"unavailable":"read-only");
+    reported=status;
     return fd;
+}
+static int st_menu_refresh(int fd) {
+    if(st_menu_u32(fd,0x400000)==0x00905a4d) return fd;
+    if(fd>=0) close(fd);
+    return st_menu_open();
 }
 static int st_menu_resolution(void) {
     const char *path=getenv("ST_MENU_SETTINGS");

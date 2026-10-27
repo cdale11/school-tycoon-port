@@ -87,3 +87,9 @@ and verifies native overrides in that same game launch. It passed along with
 prefix preservation/reuse, menu bounds/resolution checks, full-panel presentation,
 firmware-setting audit and package-integrity checks. The final archive is rebuilt
 from this correction; the VM capture results above remain dated 21 October.
+
+## Handheld follow-up
+
+The user subsequently confirmed working sound and faster gameplay. Cursor and
+text defects remain under investigation; see [cursor-controls-update.md](cursor-controls-update.md)
+for the latest log findings, targeted repairs and validation limits.
